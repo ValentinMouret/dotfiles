@@ -1,0 +1,25 @@
+# Aliases
+
+## General
+
+alias nn=nano
+alias ll="exa --long"
+alias cat=bat
+
+## Brew
+alias  bu="brew upgrade"
+
+## Python
+
+alias py=python3
+alias pip3-upgrade="pip3 freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip3 install -U"
+alias ipy="python3 -c 'import IPython; IPython.terminal.ipapp.launch_new_instance()'"
+
+alias jn="jupyter-notebook"
+
+## Git
+alias gs="git status"
+alias git=hub
+
+## Miscellaneous
+alias lg=lazygit
