@@ -15,7 +15,26 @@ function brew::install_if_absent() {
 }
 
 function brew::install_packages() {
-	brew bundle
+  brew bundle
+}
+
+function fonts::download() {
+  readonly font_archive="$1"
+  readonly font_url="$https://download.jetbrains.com/fonts/$font_archive"
+  curl -fosSL "$font_url"
+}
+
+function fonts::install() {
+  readonly font_archive="$1"
+  unzip font_archive
+  readonly folder_name=$(echo "$font_archive" | sed 's/\.zip//g')
+  for f in $folder_name/*.tff;do
+    cp -vf "$f" ~/Library/Fonts
+  done
+}
+
+function fonts::setup() {
+  fonts::download && fonts::install
 }
 
 brew::install_if_absent &&
@@ -23,3 +42,5 @@ brew::install_if_absent &&
 
 echo "Copying the fish configuration."
 cp -r fish_config ~/.config/fish
+
+fonts::setup
