@@ -11,6 +11,7 @@ circleci
 dep
 dive
 docker
+emacs
 exa
 fd
 ffmpeg
