@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Runs the different setups.
+
 set -euo pipefail
 
 
@@ -9,7 +11,7 @@ function brew::install() {
 }
 
 function brew::install_if_absent() {
-  if [ -z $(command -v brew) ];then
+  if [ -z "$(command -v brew)" ]; then
     brew::install
   fi
 }
@@ -18,29 +20,27 @@ function brew::install_packages() {
   brew bundle
 }
 
-function fonts::download() {
-  readonly font_archive="$1"
-  readonly font_url="$https://download.jetbrains.com/fonts/$font_archive"
-  curl -fosSL "$font_url"
+function brew::setup() {
+    brew::install_if_absent &&
+        brew:install_packages
 }
 
-function fonts::install() {
-  readonly font_archive="$1"
-  unzip font_archive
-  readonly folder_name=$(echo "$font_archive" | sed 's/\.zip//g')
-  for f in $folder_name/*.tff;do
-    cp -vf "$f" ~/Library/Fonts
-  done
+function emacs::setup() {
+    emacs_dir_path="$HOME/.emacs.d"
+    if [ -d emacs_dir_path ]; then
+        rm -rf "$emacs_dir_path"
+    fi
+    mkdir -p "$emacs_dir_path"
+    ln -sf "./setup" "$emacs_dir_path"
+    ln -sf "./config" "$emacs_dir_path"
+    ln -sf "./init.el" "$emacs_dir_path/init.el"
 }
 
-function fonts::setup() {
-  fonts::download && fonts::install
-}
+echo "Setting up Homebrew"
+brew::setup
 
-brew::install_if_absent &&
-  brew::install_packages
+echo "Setting up Emacs"
+emacs::setup
 
 echo "Copying the fish configuration."
 cp -r fish_config ~/.config/fish
-
-fonts::setup
