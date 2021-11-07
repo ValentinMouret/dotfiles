@@ -1,32 +1,166 @@
-(let ((setup (concat user-emacs-directory (convert-standard-filename "setup/")))
-      (configs (concat user-emacs-directory (convert-standard-filename "config/"))))
-  (add-to-list 'load-path setup)
-  (add-to-list 'load-path configs))
+;;;; init.el --- File launched by Emacs on every startup.
 
-;; Setups
-(require 'common-setup)
+;;;; Commentary:
+;;
+;; It installs the package manager `use-package` and sets up
+;; the different packages for the core functionalities, the editor,
+;; and the support for each language.
+
+;;;; Code:
+
+;; Initialize the package archives:
 
 (require 'package)
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                         ("org" . "https://orgmode.org/elpa/")
-                         ("tromey", "https://tromey.come/elpa/")
-                         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(setq package-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("org" . "https://orgmode.org/elpa/")
+        ("elpa" . "https://elpa.gnu.org/packages/")))
+
 (setq package-check-signature nil)
 (package-initialize)
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 
-;; Configs
-
-(require 'shellcheck-config)
-(require 'python-config)
-(require 'ruby-config)
-(require 'smartparens-config)
+;; Install if they are not available.
+(setq use-package-always-ensure t)
 
 
-(use-package swiper
-  :ensure t)
+;; This is only needed once, near the top of the file
+(eval-when-compile
+  ;; Following line is not needed if use-package.el is in ~/.emacs.d
+  (add-to-list 'load-path "<path where use-package is installed>")
+  (require 'use-package))
 
+;;;; General setup
+;;
+;; Delete trailing whitespaces on save.
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+;; Always end files with a newline.
+(setq require-final-newline t)
+
+;; Don’t use tabs for indentation.
+(setq-default indent-tabs-mode nil)
+
+;; Shorten yes/no prompts to y/n.
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+;; Disable ring bell noises.
+(setq ring-bell-function 'ignore)
+
+
+;;;; End of general setup.
+
+;;;; Editor configuration.
+
+(setq mac-left-option-modifier 'meta)
+(setq mac-left-command-modifier 'meta)
+(setq mac-right-option-modifier nil)
+
+(use-package exec-path-from-shell)
+;; Sets up exec-path-from shell
+;; https://github.com/purcell/exec-path-from-shell
+(when (memq window-system '(mac ns))
+  (exec-path-from-shell-initialize)
+  (exec-path-from-shell-copy-envs
+   '("PATH")))
+
+(setq locale-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+(set-language-environment "UTF-8")
+
+(add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+(add-to-list 'default-frame-alist '(ns-appearance . dark))
+
+;; Show line numbers.
+(column-number-mode)
+(global-display-line-numbers-mode t)
+;; Disable line numbers for some modes.
+(dolist (mode '(org-mode-hook
+		term-mode-hook
+		shell-mode-hook
+		eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(defvar emacs-autosave-directory
+  (concat user-emacs-directory "autosaves/"))
+(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
+      backup-by-copying t    ; Don't delink hardlinks
+      version-control t      ; Use version numbers on backups
+      delete-old-versions t  ; Automatically delete excess backups
+      kept-new-versions 20   ; how many of the newest versions to keep
+      kept-old-versions 5    ; and how many of the old
+      )
+
+(use-package emojify)
+
+;; Load the dark theme from base16.
+(use-package base16-theme)
+(setq base16-highlight-modae-line 'false)
+(setq base16-theme-256-color-source "colors")
+(load-theme 'base16-default-dark t)
+;; (load-theme 'base16-default-light t)
+
+;; No need for ~ files when editing
+(setq create-lockfiles nil)
+
+;; Go straight to scratch buffer on startup
+(setq inhibit-startup-message t)
+
+(set-frame-font "SF Mono 12" nil t)
+
+(require 'uniquify)
+(setq uniquify-buffer-name-style 'forward)
+
+(setq recentf-save-file (concat user-emacs-directory ".recentf"))
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 40)
+
+;; ido-mode allows you to more easily navigate choices. For example,
+;; when you want to switch buffers, ido presents you with a list
+;; of buffers in the the mini-buffer. As you start to type a buffer's
+;; name, ido will narrow down the list of buffers to match the text
+;; you've typed in
+;; http://www.emacswiki.org/emacs/InteractivelyDoThings
+(ido-mode t)
+
+;; This allows partial matches, e.g. "tl" will match "Tyrion Lannister"
+(setq ido-enable-flex-matching t)
+
+;; Turn this behavior off because it's annoying
+(setq ido-use-filename-at-point nil)
+
+;; Don't try to match file across all "work" directories; only match files
+;; in the current directory displayed in the minibuffer
+(setq ido-auto-merge-work-directories-length -1)
+
+;; Includes buffer names of recently open files, even if they're not
+;; open now
+(setq ido-use-virtual-buffers t)
+
+;; This enables ido in all contexts where it could be useful, not just
+;; for selecting buffer and file names
+(ido-everywhere t)
+
+;; Shows a list of buffers
+(global-set-key (kbd "C-x C-b") 'ibuffer)
+
+(use-package smex
+  ;; Enhances M-x to allow easier execution of commands. Provides
+  ;; a filterable list of possible commands in the minibuffer
+  ;; http://www.emacswiki.org/emacs/Smex
+  :config
+  (smex-initialize)
+  (setq smex-save-file (concat user-emacs-directory ".smex-items"))
+  :bind
+  ("M-x" . smex))
+
+(use-package swiper)
 (use-package counsel
   :bind (("M-x" . counsel-M-x)
 	 ("C-x b" . counsel-ibuffer)
@@ -35,7 +169,6 @@
 	 ("C-r" . 'counsel-mini-buffer-history))
   :config
   (setq ivy-initial-inputs-alist nil))
-
 (use-package ivy
   :diminish
   :bind (("C-s" . swiper)
@@ -45,7 +178,6 @@
          ("TAB" . ivy-alt-done))
   :config
   (ivy-mode 1))
-(ivy-mode 1)
 
 (use-package ivy-rich
   :init
@@ -77,60 +209,28 @@
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :init
-  (when (file-directory-p "~/src")
-    (setq projectile-project-search-path '("~/src")))
+  (when (file-directory-p "~/Code")
+    (setq projectile-project-search-path '("~/Code")))
   (setq projectile-switch-project-action #'projectile-dired))
 
 (use-package counsel-projectile
   :config (counsel-projectile-mode))
 
 (use-package magit
+  :init
+  (setq auth-sources '("~/.authinfo"))
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
+(use-package markdown-mode
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "multimarkdown"))
+
 (use-package forge)
 
-(defun org-mode-setup ()
-  (org-indent-mode)
-  (variable-pitch-mode 1)
-  (visual-line-mode 1))
 
-(use-package org
-  :hook (org-mode . org-mode-setup))
-
-(defun org-mode-visual-fill ()
-  (setq visual-fill-column-width 100
-        visual-fill-column-center-text t)
-  (visual-fill-column-mode 1))
-(use-package visual-fill-column
-  :hook (org-mode . org-mode-visual-fill))
-
- (add-hook 'term-mode-hook
- 	      (function
- 	       (lambda ()
- 	             (setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *")
- 	             (setq-local mouse-yank-at-point t)
- 	             (setq-local transient-mark-mode nil)
- 	             (auto-fill-mode -1)
- 	             (setq tab-width 8 ))))
-
-(use-package yaml-mode
-  :ensure t
-  :hook
-  (yaml-mode-hook . (lambda () (define-key yaml-mode-map "\C-m" 'newline-and-indent))))
-
-(use-package pyvenv)
-(use-package blacken
-  :config
-  (add-hook 'python-mode-hook 'blacken-mode))
-
-(add-hook 'python-mode-hook 'jedi:setup)
-(setq jedi:complete-on-dot t)
-
-(use-package go-mode
-  :config
-  (add-hook 'before-save-hook 'gofmt-before-save))
-
+;;;; Language support
+;; General
 (use-package flycheck
   :config
   (add-hook 'after-init-hook 'global-flycheck-mode)
@@ -148,7 +248,7 @@
             #b00000000
             #b00011100
             #b00111110
-            #b00111110
+        111000000000
             #b00111110
             #b00011100
             #b00000000
@@ -172,6 +272,67 @@
     :fringe-bitmap 'flycheck-fringe-bitmap-ball
     :fringe-face 'flycheck-fringe-info))
 
+;; Emacs
+
+(add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+(add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+(add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
+
+;; Lisp
+
+(use-package paredit
+  :config
+  (show-paren-mode t)
+  :diminish nil
+  :hook
+  ((emacs-lisp-mode
+    lisp-mode
+    clojure-mode
+    cider-repl-mode) . enable-paredit-mode))
+
+;; Clojure
+
+(use-package flycheck-clj-kondo)
+
+(use-package clojure-mode
+  :config
+  (require 'flycheck-clj-kondo))
+(use-package cider
+  :config
+  (setq cider-repl-pop-to-buffer-on-connect t
+        cider-show-error-buffer t
+        cider-auto-select-error-buffer t
+        cider-repl-history-file "~/.emacs.d/cider-history"
+        cider-repl-wrap-history t)
+  :hook
+  (cider-mode . clj-refactor-mode))
+(use-package clj-refactor
+  :diminish clj-refactor-mode
+  )
+
+;; YAML
+(use-package yaml-mode)
+
+;; Python
+(use-package pyvenv)
+(use-package blacken
+  :hook
+  (python-mode-hook))
+
+(use-package jedi
+  :config
+  (setq jedi:complete-on-dot t)
+  :hook
+  (python-mode-hook . jedi:setup))
+
+(use-package poetry)
+
+;; Go
+(use-package go-mode
+  :hook
+  (before-save-hook . gofmt-before-save))
+
+;; JavaScript
 (use-package prettier-js
   :config
   (setq prettier-js-args '(
@@ -179,16 +340,37 @@
                            "--single-quote" "true"
                            "--print-width" "100"
                            ))
-  (add-hook 'js-mode-hook 'prettier-js-mode)
-  (add-hook 'js-mode-hook 'subword-mode)
-  (add-hook 'js2-mode-hook 'prettier-js-mode)
-  (add-hook 'rjsx-mode-hook 'prettier-js-mode))
+  :hook
+  ((js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
+  (js-mode-hook . subword-mode))
 
-(use-package cider)
-
+;; Markdown
 (use-package markdown-mode
     :commands (markdown-mode gfm-mode)
     :mode (("README\\.md\\'" . gfm-mode)
            ("\\.md\\'" . markdown-mode)
            ("\\.markdown\\'" . markdown-mode))
     :init (setq markdown-command "multimarkdown"))
+
+;; Shell
+(setq-default sh-basic-offset 2)
+(setq-default sh-indentation 2)
+
+
+;; Custom
+;; This area is set by Custom. Don’t touch it.
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
+ '(package-selected-packages
+   '(poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
