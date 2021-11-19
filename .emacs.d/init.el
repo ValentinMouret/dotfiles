@@ -41,7 +41,7 @@
 (setq require-final-newline t)
 
 ;; Don’t use tabs for indentation.
-(setq-default indent-tabs-mode nil)
+; (setq-default indent-tabs-mode nil)
 
 ;; Shorten yes/no prompts to y/n.
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -341,8 +341,23 @@
                            "--print-width" "100"
                            ))
   :hook
-  ((js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
-  (js-mode-hook . subword-mode))
+  ((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
+  (js-mode-hook . subword-mode)
+)
+
+;; Typescript
+(use-package company)
+(use-package typescript-mode
+  :hook
+  (typescript-mode . company-mode))
+(use-package tide
+  :after (typescript-mode company flycheck)
+  :hook ((typescript-mode . tide-setup)
+         (typescript-mode . tide-hl-identifier-mode)
+         ;(before-save . tide-format-before-save)
+	 )
+  :config
+  (setq company-idle-delay 0))
 
 ;; Markdown
 (use-package markdown-mode
@@ -356,6 +371,10 @@
 (setq-default sh-basic-offset 2)
 (setq-default sh-indentation 2)
 
+(use-package flymake-shellcheck
+  :commands flymake-shellcheck-load
+  :hook
+  (sh-mode-hook . flymake-shellcheck-load))
 
 ;; Custom
 ;; This area is set by Custom. Don’t touch it.
@@ -367,7 +386,7 @@
  '(custom-safe-themes
    '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
  '(package-selected-packages
-   '(poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
+   '(flymake-shellcheck tide company typescript-mode poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
