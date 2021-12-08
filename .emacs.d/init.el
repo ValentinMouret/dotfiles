@@ -150,6 +150,12 @@
 ;; Shows a list of buffers
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
+(use-package auto-package-update
+   :config
+   (setq auto-package-update-delete-old-versions t
+         auto-package-update-interval 1)
+   (auto-package-update-maybe))
+
 (use-package smex
   ;; Enhances M-x to allow easier execution of commands. Provides
   ;; a filterable list of possible commands in the minibuffer
