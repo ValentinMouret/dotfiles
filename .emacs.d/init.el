@@ -342,20 +342,26 @@
 (use-package prettier-js
   :config
   (setq prettier-js-args '(
-                           "--trailing-comma" "es5"
+                           "--trailing-comma" "all"
                            "--single-quote" "true"
+			   "--semi" "false"
                            "--print-width" "100"
                            ))
   :hook
-  ((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
-  (js-mode-hook . subword-mode)
+  (((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
+   (typescript-mode . prettier-js-mode)
+   (js-mode-hook . subword-mode))
 )
 
 ;; Typescript
 (use-package company)
 (use-package typescript-mode
   :hook
-  (typescript-mode . company-mode))
+  ((typescript-mode . company-mode)
+   (typescript-mode . subword-mode)
+   (typescript-mode . prettier-js-mode))
+  )
+
 (use-package tide
   :after (typescript-mode company flycheck)
   :hook ((typescript-mode . tide-setup)
@@ -389,10 +395,10 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
+ '(coffee-tab-width 2)
  '(package-selected-packages
-   '(flymake-shellcheck tide company typescript-mode poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
+   '(typescript-mode auto-package-update clj-refactor dockerfile-mode poetry flycheck-clj-kondo xah-css-mode tagedit elein scala-mode flymake-shellcheck jsonnet-mode jedi smex paredit yaml-mode which-key visual-fill-column use-package rainbow-delimiters pyvenv prettier-js ivy-rich ivy-hydra go-mode forge flycheck expand-region exec-path-from-shell emojify doom-modeline counsel-projectile cider blacken base16-theme avy))
+ '(safe-local-variable-values '((cider-shadow-cljs-default-options . "app"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
