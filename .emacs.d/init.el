@@ -100,7 +100,7 @@
 
 ;; Load the dark theme from base16.
 (use-package base16-theme)
-(setq base16-highlight-modae-line 'false)
+(setq base16-highlight-mode-line 'false)
 (setq base16-theme-256-color-source "colors")
 (load-theme 'base16-default-dark t)
 ;; (load-theme 'base16-default-light t)
@@ -111,7 +111,7 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "SF Mono 12" nil t)
+(set-frame-font "Iosevka Term 16" nil t)
 
 (require 'uniquify)
 (setq uniquify-buffer-name-style 'forward)
@@ -315,6 +315,10 @@
 (use-package clj-refactor
   :diminish clj-refactor-mode
   )
+
+;; Racket
+
+(use-package racket-mode)
 
 ;; YAML
 (use-package yaml-mode)
