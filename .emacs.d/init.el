@@ -17,6 +17,11 @@
         ("org" . "https://orgmode.org/elpa/")
         ("elpa" . "https://elpa.gnu.org/packages/")))
 
+(defun recompile-source ()
+  "Recompiles sources as they sometimes get stuck."
+  (interactive "p")
+  (byte-recompile-directory package-user-dir nil 'force))
+
 (setq package-check-signature nil)
 (package-initialize)
 (unless (package-installed-p 'use-package)
@@ -234,6 +239,17 @@
 
 (use-package forge)
 
+(use-package lsp-mode
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         (XXX-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+
 
 ;;;; Language support
 ;; General
@@ -302,8 +318,11 @@
 
 (use-package clojure-mode
   :config
-  (require 'flycheck-clj-kondo))
+  (require 'flycheck-clj-kondo)
+  (setq clojure-align-forms-automatically t))
+
 (use-package cider
+  :commands (cider cider-connect cider-jack-in)
   :config
   (setq cider-repl-pop-to-buffer-on-connect t
         cider-show-error-buffer t
@@ -311,7 +330,10 @@
         cider-repl-history-file "~/.emacs.d/cider-history"
         cider-repl-wrap-history t)
   :hook
-  (cider-mode . clj-refactor-mode))
+  ((cider-mode . clj-refactor-mode)
+   (before-save . cider-format-buffer))
+)
+
 (use-package clj-refactor
   :diminish clj-refactor-mode
   )
@@ -329,13 +351,43 @@
   :hook
   (python-mode-hook))
 
+(use-package lsp-pyright
+  :config
+  (put 'lsp-pyright-python-executable-cmd 'safe-local-variable #'stringp)
+  :hook
+  (
+   (python-mode . (lambda ()
+                    (require 'lsp-pyright)
+                    (lsp-deferred)
+		    ))
+   ;; if .dir-locals exists, read it first, then activate mspyls
+   (hack-local-variables . (lambda ()
+			     (setq indent-tabs-mode nil)  ; disable tabs
+			     ))
+   )
+  )
+
+;; python-black
+(use-package python-black
+  :hook
+  (python-mode . python-black-on-save-mode)
+  :init
+  (put 'python-black-command 'safe-local-variable #'stringp)
+  (put 'python-black-extra-args 'safe-local-variable #'stringp)
+  (put 'python-black-on-save-mode 'safe-local-variable #'booleanp)
+  )
+
 (use-package jedi
   :config
   (setq jedi:complete-on-dot t)
   :hook
   (python-mode-hook . jedi:setup))
 
-(use-package poetry)
+(use-package poetry
+  :hook
+  (python-mode . poetry-tracking-mode))
+
+(setq pyvenv-mode nil)
 
 ;; Go
 (use-package go-mode
@@ -383,6 +435,69 @@
            ("\\.markdown\\'" . markdown-mode))
     :init (setq markdown-command "multimarkdown"))
 
+;; Java
+
+;;
+;; switch java
+;;
+(setq JAVA_BASE "/Library/Java/JavaVirtualMachines")
+
+;;
+;; This function returns the list of installed
+;;
+(defun switch-java--versions ()
+  "Return the list of installed JDK."
+  (seq-remove
+   (lambda (a) (or (equal a ".") (equal a "..")))
+   (directory-files JAVA_BASE)))
+
+
+(defun switch-java--save-env ()
+  "Store original PATH and JAVA_HOME."
+  (when (not (boundp 'SW_JAVA_PATH))
+    (setq SW_JAVA_PATH (getenv "PATH")))
+  (when (not (boundp 'SW_JAVA_HOME))
+    (setq SW_JAVA_HOME (getenv "JAVA_HOME"))))
+
+
+(defun switch-java ()
+  "List the installed JDKs and enable to switch the JDK in use."
+  (interactive)
+  ;; store original PATH and JAVA_HOME
+  (switch-java--save-env)
+
+  (let ((ver (completing-read
+              "Which Java: "
+              (seq-map-indexed
+               (lambda (e i) (list e i)) (switch-java--versions))
+              nil t "")))
+    ;; switch java version
+    (setenv "JAVA_HOME" (concat JAVA_BASE "/" ver "/Contents/Home"))
+    (setenv "PATH" (concat (concat (getenv "JAVA_HOME") "/bin/java")
+                           ":" SW_JAVA_PATH)))
+  ;; show version
+  (switch-java-which-version?))
+
+
+(defun switch-java-default ()
+  "Restore the default Java version."
+  (interactive)
+  ;; store original PATH and JAVA_HOME
+  (switch-java--save-env)
+
+  ;; switch java version
+  (setenv "JAVA_HOME" SW_JAVA_HOME)
+  (setenv "PATH" SW_JAVA_PATH)
+  ;; show version
+  (switch-java-which-version?))
+
+
+(defun switch-java-which-version? ()
+  "Display the current version selected Java version."
+  (interactive)
+  ;; displays current java version
+  (message (concat "Java HOME: " (getenv "JAVA_HOME"))))
+
 ;; Shell
 (setq-default sh-basic-offset 2)
 (setq-default sh-indentation 2)
@@ -399,10 +514,10 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(coffee-tab-width 2)
+ '(custom-safe-themes
+   '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
  '(package-selected-packages
-   '(typescript-mode auto-package-update clj-refactor dockerfile-mode poetry flycheck-clj-kondo xah-css-mode tagedit elein scala-mode flymake-shellcheck jsonnet-mode jedi smex paredit yaml-mode which-key visual-fill-column use-package rainbow-delimiters pyvenv prettier-js ivy-rich ivy-hydra go-mode forge flycheck expand-region exec-path-from-shell emojify doom-modeline counsel-projectile cider blacken base16-theme avy))
- '(safe-local-variable-values '((cider-shadow-cljs-default-options . "app"))))
+   '(dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company auto-package-update tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
