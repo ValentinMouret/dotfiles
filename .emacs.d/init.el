@@ -30,7 +30,6 @@
 ;; Install if they are not available.
 (setq use-package-always-ensure t)
 
-
 ;; This is only needed once, near the top of the file
 (eval-when-compile
   ;; Following line is not needed if use-package.el is in ~/.emacs.d
@@ -94,11 +93,11 @@
 (defvar emacs-autosave-directory
   (concat user-emacs-directory "autosaves/"))
 (setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
-      backup-by-copying t    ; Don't delink hardlinks
-      version-control t      ; Use version numbers on backups
-      delete-old-versions t  ; Automatically delete excess backups
-      kept-new-versions 20   ; how many of the newest versions to keep
-      kept-old-versions 5    ; and how many of the old
+      backup-by-copying t    ;; Don't delink hardlinks
+      version-control t      ;; Use version numbers on backups
+      delete-old-versions t  ;; Automatically delete excess backups
+      kept-new-versions 20   ;; how many of the newest versions to keep
+      kept-old-versions 5    ;; and how many of the old
       )
 
 (use-package emojify)
@@ -175,6 +174,7 @@
 (use-package counsel
   :bind (("M-x" . counsel-M-x)
 	 ("C-x b" . counsel-ibuffer)
+         ("C-M-j" . counsel-switch-buffer)
 	 ("C-x C-f" . counsel-find-file)
 	 :map minibuffer-local-map
 	 ("C-r" . 'counsel-mini-buffer-history))
@@ -189,6 +189,39 @@
          ("TAB" . ivy-alt-done))
   :config
   (ivy-mode 1))
+
+(use-package evil
+  :init (setq evil-want-keybinding nil)
+  :config
+  (define-key evil-normal-state-map "c" nil)
+  (define-key evil-normal-state-map "C" nil)
+  (define-key evil-normal-state-map "s" nil)
+  (define-key evil-normal-state-map "S" nil)
+  (define-key evil-normal-state-map "r" nil)
+  (define-key evil-normal-state-map "R" nil)
+  (define-key evil-normal-state-map "j" nil)
+  (define-key evil-normal-state-map "J" nil)
+                                        ;je redéfinis certaines fonctions pour l’état normal
+  (define-key evil-normal-state-map "h" 'evil-change)
+  (define-key evil-normal-state-map "H" nil)
+  (define-key evil-normal-state-map "T" 'evil-join)
+  (define-key evil-normal-state-map "l" 'evil-replace)
+  (define-key evil-normal-state-map "L" nil)
+  (define-key evil-normal-state-map "k" 'evil-substitute)
+  (define-key evil-normal-state-map "K" 'evil-change-whole-line)
+                                        ;même chose mais cette fois pour l’état motion
+  (define-key evil-motion-state-map "c" 'evil-backward-char)
+  (define-key evil-motion-state-map "C" 'evil-window-top)
+  (define-key evil-motion-state-map "t" 'evil-next-line)
+  (define-key evil-motion-state-map "s" 'evil-previous-line)
+  (define-key evil-motion-state-map "r" 'evil-forward-char)
+  (define-key evil-motion-state-map "R" 'evil-window-bottom)
+  (define-key evil-motion-state-map "j" 'evil-find-char-to)
+  (define-key evil-motion-state-map "J" 'evil-find-char-to-backward)
+)
+
+(use-package evil-collection
+  :after evil)
 
 (use-package ivy-rich
   :init
@@ -240,16 +273,144 @@
 (use-package forge)
 
 (use-package lsp-mode
+  :ensure t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-  (setq lsp-keymap-prefix "C-c l")
-  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (XXX-mode . lsp)
-         ;; if you want which-key integration
-         (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
+  (setq lsp-keymap-prefix "C-c l")  
+  :hook ((clojure-mode . lsp)
+         (clojurec-mode . lsp)
+         (clojurescript-mode . lsp)
+         (typescript-mode . lsp)
+	 (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp
+  :config
+  ;; add paths to your local installation of project mgmt tools, like lein
+  (setenv "PATH" (concat
+                   "/usr/local/bin" path-separator
+                   (getenv "PATH")))
+  (dolist (m '(clojure-mode
+	       typescript-mode
+               javascript-mode
+               clojurec-mode
+               clojurescript-mode
+               clojurex-mode))
+    (add-to-list 'lsp-language-id-configuration `(,m . "clojure"))))
 
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode)
 
+(use-package lsp-treemacs)
+
+;; Treemacs
+
+(use-package treemacs
+  :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+  :config
+  (progn
+    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+          treemacs-deferred-git-apply-delay        0.5
+          treemacs-directory-name-transformer      #'identity
+          treemacs-display-in-side-window          t
+          treemacs-eldoc-display                   'simple
+          treemacs-file-event-delay                5000
+          treemacs-file-extension-regex            treemacs-last-period-regex-value
+          treemacs-file-follow-delay               0.2
+          treemacs-file-name-transformer           #'identity
+          treemacs-follow-after-init               t
+          treemacs-expand-after-init               t
+          treemacs-find-workspace-method           'find-for-file-or-pick-first
+          treemacs-git-command-pipe                ""
+          treemacs-goto-tag-strategy               'refetch-index
+          treemacs-indentation                     2
+          treemacs-indentation-string              " "
+          treemacs-is-never-other-window           nil
+          treemacs-max-git-entries                 5000
+          treemacs-missing-project-action          'ask
+          treemacs-move-forward-on-expand          nil
+          treemacs-no-png-images                   nil
+          treemacs-no-delete-other-windows         t
+          treemacs-project-follow-cleanup          nil
+          treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+          treemacs-position                        'left
+          treemacs-read-string-input               'from-child-frame
+          treemacs-recenter-distance               0.1
+          treemacs-recenter-after-file-follow      nil
+          treemacs-recenter-after-tag-follow       nil
+          treemacs-recenter-after-project-jump     'always
+          treemacs-recenter-after-project-expand   'on-distance
+          treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+          treemacs-show-cursor                     nil
+          treemacs-show-hidden-files               t
+          treemacs-silent-filewatch                nil
+          treemacs-silent-refresh                  nil
+          treemacs-sorting                         'alphabetic-asc
+          treemacs-select-when-already-in-treemacs 'move-back
+          treemacs-space-between-root-nodes        t
+          treemacs-tag-follow-cleanup              t
+          treemacs-tag-follow-delay                1.5
+          treemacs-text-scale                      nil
+          treemacs-user-mode-line-format           nil
+          treemacs-user-header-line-format         nil
+          treemacs-wide-toggle-width               70
+          treemacs-width                           35
+          treemacs-width-increment                 1
+          treemacs-width-is-initially-locked       t
+          treemacs-workspace-switch-cleanup        nil)
+
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode 'always)
+
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple)))
+
+    (treemacs-hide-gitignored-files-mode nil))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t d"   . treemacs-select-directory)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag)))
+
+(use-package treemacs-evil
+  :after (treemacs evil)
+  :ensure t)
+
+(use-package treemacs-projectile
+  :after (treemacs projectile)
+  :ensure t)
+
+(use-package all-the-icons)
+
+(use-package treemacs-icons-dired
+  :hook (dired-mode . treemacs-icons-dired-enable-once)
+  :ensure t)
+
+;; (use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
+;;   :after (treemacs persp-mode) ;;or perspective vs. persp-mode
+;;   :ensure t
+;;   :config (treemacs-set-scope-type 'Perspectives))
+
+;; (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
+;;   :after (treemacs)
+;;   :ensure t
+;;   :config (treemacs-set-scope-type 'Tabs))
 
 ;;;; Language support
 ;; General
@@ -294,6 +455,18 @@
     :fringe-bitmap 'flycheck-fringe-bitmap-ball
     :fringe-face 'flycheck-fringe-info))
 
+
+(use-package emojify
+  :hook (after-init . global-emojify-mode))
+(add-hook 'after-init-hook #'global-emojify-mode)
+
+;; SQL
+
+(use-package sqlformat
+  :config
+  (setq sqlformat-command 'pgformatter)
+  (setq sqlformat-args '("-s2" "--no-extra-line")))
+
 ;; Emacs
 
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
@@ -332,7 +505,8 @@
   :hook
   ((cider-mode . clj-refactor-mode)
    (before-save . cider-format-buffer))
-)
+  )
+
 
 (use-package clj-refactor
   :diminish clj-refactor-mode
@@ -491,7 +665,6 @@
   ;; show version
   (switch-java-which-version?))
 
-
 (defun switch-java-which-version? ()
   "Display the current version selected Java version."
   (interactive)
@@ -517,10 +690,13 @@
  '(custom-safe-themes
    '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
  '(package-selected-packages
-   '(dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company auto-package-update tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
+   '(evil-collection treemacs-evil evil-mode slack oauth2 dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company auto-package-update tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+(provide 'init)
+;;; init.el ends here.
