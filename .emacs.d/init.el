@@ -192,7 +192,12 @@
 
 (use-package evil
   :init (setq evil-want-keybinding nil)
-  :config
+  :bind
+  ("M-." . xref-find-definitions))
+
+(use-package evil-collection
+  :after evil
+    :config
   (define-key evil-normal-state-map "c" nil)
   (define-key evil-normal-state-map "C" nil)
   (define-key evil-normal-state-map "s" nil)
@@ -217,11 +222,9 @@
   (define-key evil-motion-state-map "r" 'evil-forward-char)
   (define-key evil-motion-state-map "R" 'evil-window-bottom)
   (define-key evil-motion-state-map "j" 'evil-find-char-to)
-  (define-key evil-motion-state-map "J" 'evil-find-char-to-backward)
-)
-
-(use-package evil-collection
-  :after evil)
+  (define-key evil-motion-state-map "gd" 'xref-find-definitions)
+  (define-key evil-motion-state-map "." 'xref-go-back)
+  (define-key evil-motion-state-map "J" 'evil-find-char-to-backward))
 
 (use-package ivy-rich
   :init
@@ -280,6 +283,7 @@
   :hook ((clojure-mode . lsp)
          (clojurec-mode . lsp)
          (clojurescript-mode . lsp)
+         (go-mode . lsp)
          (typescript-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp
@@ -293,7 +297,8 @@
                javascript-mode
                clojurec-mode
                clojurescript-mode
-               clojurex-mode))
+               clojurex-mode
+               go-mode))
     (add-to-list 'lsp-language-id-configuration `(,m . "clojure"))))
 
 (use-package lsp-ui
@@ -483,7 +488,12 @@
   ((emacs-lisp-mode
     lisp-mode
     clojure-mode
+    slime-repl-mode
     cider-repl-mode) . enable-paredit-mode))
+
+(use-package slime
+  :config
+  (setq inferior-lisp-program (executable-find "sbcl")))
 
 ;; Clojure
 
