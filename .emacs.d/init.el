@@ -1,60 +1,88 @@
-;;;; init.el --- File launched by Emacs on every startup.
-
-;;;; Commentary:
+;; init.el --- -*- lexical-binding: t -*-
+;;
+;; Filename: init.el
+;; Description: File launched by Emacs on every startup.
+;; Author: Valentin Mouret
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
 ;;
 ;; It installs the package manager `use-package` and sets up
 ;; the different packages for the core functionalities, the editor,
 ;; and the support for each language.
+;;
+;; A lot of the content here comes from https://github.com/MatthewZMD/.emacs.d#org14e341b.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
-;;;; Code:
+;; Improve the GC
+
+(defvar better-gc-cons-threshold (* 100 1024 1024) ; 128mb
+  "The default value to use for `gc-cons-threshold'.
+
+If you experience freezing, decrease this.  If you experience stuttering, increase this.")
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold better-gc-cons-threshold)
+            (setq file-name-handler-alist file-name-handler-alist-original)
+            (makunbound 'file-name-handler-alist-original)))
+
+;; AutoGC
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (if (boundp 'after-focus-change-function)
+                (add-function :after after-focus-change-function
+                              (lambda ()
+                                (unless (frame-focus-state)
+                                  (garbage-collect))))
+              (add-hook 'after-focus-change-function 'garbage-collect))
+            (defun gc-minibuffer-setup-hook ()
+              (setq gc-cons-threshold (* better-gc-cons-threshold 2)))
+
+            (defun gc-minibuffer-exit-hook ()
+              (garbage-collect)
+              (setq gc-cons-threshold better-gc-cons-threshold))
+
+            (add-hook 'minibuffer-setup-hook #'gc-minibuffer-setup-hook)
+            (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
+;; -AutoGC
+
+;; LoadPath
+(defun update-to-load-path (folder)
+  "Update FOLDER and its subdirectories to `load-path'."
+  (let ((base folder))
+    (unless (member base load-path)
+      (add-to-list 'load-path base))
+    (dolist (f (directory-files base))
+      (let ((name (concat base "/" f)))
+        (when (and (file-directory-p name)
+                   (not (equal f ".."))
+                   (not (equal f ".")))
+          (unless (member base load-path)
+            (add-to-list 'load-path name)))))))
+
+(update-to-load-path (expand-file-name "elisp" user-emacs-directory))
+;; -LoadPath
+
+;; Constants
+
+(require 'init-const)
+
+;; Packages
+
+(require 'init-package)
+
+;; Global functionalities
+
+(require 'init-global-config)
 
 ;; Initialize the package archives:
 
 (require 'package)
-
-(setq package-archives
-      '(("melpa" . "https://melpa.org/packages/")
-        ("org" . "https://orgmode.org/elpa/")
-        ("elpa" . "https://elpa.gnu.org/packages/")))
-
-(defun recompile-source ()
-  "Recompiles sources as they sometimes get stuck."
-  (interactive "p")
-  (byte-recompile-directory package-user-dir nil 'force))
-
-(setq package-check-signature nil)
-(package-initialize)
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-
-;; Install if they are not available.
-(setq use-package-always-ensure t)
-
-;; This is only needed once, near the top of the file
-(eval-when-compile
-  ;; Following line is not needed if use-package.el is in ~/.emacs.d
-  (add-to-list 'load-path "<path where use-package is installed>")
-  (require 'use-package))
-
-;;;; General setup
-;;
-;; Delete trailing whitespaces on save.
-(add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-;; Always end files with a newline.
-(setq require-final-newline t)
-
-;; Don’t use tabs for indentation.
-; (setq-default indent-tabs-mode nil)
-
-;; Shorten yes/no prompts to y/n.
-(defalias 'yes-or-no-p 'y-or-n-p)
-
-;; Disable ring bell noises.
-(setq ring-bell-function 'ignore)
-
-
-;;;; End of general setup.
 
 ;;;; Editor configuration.
 
@@ -62,7 +90,35 @@
 (setq mac-left-command-modifier 'meta)
 (setq mac-right-option-modifier nil)
 
-(use-package exec-path-from-shell)
+(global-prettify-symbols-mode 1)
+(defun add-pretty-lambda ()
+  "Make some word or string show as pretty Unicode symbols.  See https://unicodelookup.com for more."
+  (setq prettify-symbols-alist
+        '(("lambda" . 955)
+          ("delta" . 120517)
+          ("epsilon" . 120518)
+          ("->" . 8594)
+          ("<=" . 8804)
+          (">=" . 8805))))
+(add-hook 'prog-mode-hook 'add-pretty-lambda)
+(add-hook 'org-mode-hook 'add-pretty-lambda)
+
+(use-package exec-path-from-shell
+  :config
+  (exec-path-from-shell-copy-env "GOOGLE_APPLICATION_CREDENTIALS"))
+
+(use-package crux
+  :bind
+  (("C-a" . crux-move-beginning-of-line)
+   ("C-x 4 t" . crux-transpose-windows)
+   ("C-x K" . crux-kill-other-buffers)
+   ("C-k" . crux-smart-kill-line))
+  :config
+  (crux-with-region-or-buffer indent-region)
+  (crux-with-region-or-buffer untabify)
+  (crux-with-region-or-point-to-eol kill-ring-save)
+  (defalias 'rename-file-and-buffer #'crux-rename-file-and-buffer))
+
 ;; Sets up exec-path-from shell
 ;; https://github.com/purcell/exec-path-from-shell
 (when (memq window-system '(mac ns))
@@ -92,6 +148,7 @@
 
 (defvar emacs-autosave-directory
   (concat user-emacs-directory "autosaves/"))
+
 (setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
       backup-by-copying t    ;; Don't delink hardlinks
       version-control t      ;; Use version numbers on backups
@@ -115,7 +172,7 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "Iosevka Term 16" nil t)
+(set-frame-font "Iosevka Term 14" nil t)
 
 (require 'uniquify)
 (setq uniquify-buffer-name-style 'forward)
@@ -154,11 +211,25 @@
 ;; Shows a list of buffers
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
-(use-package auto-package-update
-   :config
-   (setq auto-package-update-delete-old-versions t
-         auto-package-update-interval 1)
-   (auto-package-update-maybe))
+
+(use-package flyspell
+  :ensure nil
+  :diminish
+  :if (executable-find "aspell")
+  :hook (((text-mode outline-mode latex-mode org-mode markdown-mode) . flyspell-mode))
+  :custom
+  (flyspell-issue-message-flag nil)
+  (ispell-program-name "aspell")
+  (ispell-extra-args
+   '("--sug-mode=ultra" "--lang=en_UK" "--camel-case"))
+  :config
+  (use-package flyspell-correct-ivy
+    :after ivy
+    :bind
+    (:map flyspell-mode-map
+          ([remap flyspell-correct-word-before-point] . flyspell-correct-wrapper)
+          ("C-." . flyspell-correct-wrapper))
+    :custom (flyspell-correct-interface #'flyspell-correct-ivy)))
 
 (use-package smex
   ;; Enhances M-x to allow easier execution of commands. Provides
@@ -171,6 +242,7 @@
   ("M-x" . smex))
 
 (use-package swiper)
+(use-package diminish)
 (use-package counsel
   :bind (("M-x" . counsel-M-x)
 	 ("C-x b" . counsel-ibuffer)
@@ -180,15 +252,31 @@
 	 ("C-r" . 'counsel-mini-buffer-history))
   :config
   (setq ivy-initial-inputs-alist nil))
+
 (use-package ivy
   :diminish
-  :bind (("C-s" . swiper)
+  :init
+  (use-package amx :defer t)
+  (use-package counsel :diminish :config (counsel-mode 1))
+  (use-package swiper :defer t)
+  (ivy-mode 1)
+  :bind (("C-s" . swiper-isearch)
          :map ivy-minibuffer-map
          :map ivy-switch-buffer-map
          :map ivy-reverse-i-search-map
          ("TAB" . ivy-alt-done))
+  :custom
+  (ivy-use-virtual-buffers t)
+  (ivy-height 10)
+  (ivy-on-del-error-function nil)
+  (ivy-magic-slash-non-match-action 'ivy-magic-slash-non-match-create)
+  (ivy-count-format "【%d/%d】")
+  (ivy-wrap t)
   :config
-  (ivy-mode 1))
+  (defun counsel-goto-local-home ()
+      "Go to the $HOME of the local machine."
+      (interactive)
+    (ivy--cd "~/")))
 
 (use-package evil
   :init (setq evil-want-keybinding nil)
@@ -229,17 +317,60 @@
 (use-package ivy-rich
   :init
   (ivy-rich-mode 1))
+
 (use-package ivy-hydra)
+
 (use-package avy)
+
+(use-package dired
+  :ensure nil
+  :bind
+  (("C-x C-j" . dired-jump))
+  :custom
+  ;; Always delete and copy recursively
+  (dired-listing-switches "-lah")
+  (dired-recursive-deletes 'always)
+  (dired-recursive-copies 'always)
+  ;; Auto refresh Dired, but be quiet about it
+  (global-auto-revert-non-file-buffers t)
+  (auto-revert-verbose nil)
+  ;; Quickly copy/move file in Dired
+  (dired-dwim-target t)
+  ;; Move files to trash when deleting
+  (delete-by-moving-to-trash t)
+  ;; Load the newest version of a file
+  (load-prefer-newer t)
+  ;; Detect external file changes and auto refresh file
+  (auto-revert-use-notify nil)
+  (auto-revert-interval 3) ; Auto revert every 3 sec
+  :config
+  ;; Enable global auto-revert
+  (global-auto-revert-mode t)
+  ;; Reuse same dired buffer, to prevent numerous buffers while navigating in dired
+  (put 'dired-find-alternate-file 'disabled nil)
+  :hook
+  (dired-mode . (lambda ()
+                  (local-set-key (kbd "<mouse-2>") #'dired-find-alternate-file)
+                  (local-set-key (kbd "RET") #'dired-find-alternate-file)
+                  (local-set-key (kbd "^")
+                                 (lambda () (interactive) (find-alternate-file ".."))))))
+
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
 
 ;; Run: M-x all-the-icons-install-font
 (use-package all-the-icons)
+
 (use-package doom-modeline
-  :ensure t
-  :init (doom-modeline-mode 1))
-(doom-modeline-mode 1)
+  :custom
+  ;; Don't compact font caches during GC. Windows Laggy Issue
+  (inhibit-compacting-font-caches t)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-icon t)
+  (doom-modeline-major-mode-color-icon t)
+  (doom-modeline-height 15)
+  :config
+  (doom-modeline-mode))
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -252,6 +383,8 @@
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
+  (setq projectile-after-switch-project-hook 'magit-status)
+  (add-to-list 'projectile-globally-ignored-directories "node_modules")
   :custom ((projectile-completion-system 'ivy))
   :bind-keymap
   ("C-c p" . projectile-command-map)
@@ -263,54 +396,108 @@
 (use-package counsel-projectile
   :config (counsel-projectile-mode))
 
-(use-package magit
-  :init
-  (setq auth-sources '("~/.authinfo"))
-  :custom
-  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
-
 (use-package markdown-mode
   :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown"))
 
-(use-package forge)
+(use-package rust-mode
+  :mode "\\.rs\\'"
+  :custom
+  (rust-format-on-save t)
+  :bind (:map rust-mode-map ("C-c C-c" . rust-run))
+  :config
+  (use-package flycheck-rust
+    :after flycheck
+    :config
+    (with-eval-after-load 'rust-mode
+      (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))))
 
 (use-package lsp-mode
   :ensure t
-  :init
+  :custom
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-  (setq lsp-keymap-prefix "C-c l")  
-  :hook ((clojure-mode . lsp)
-         (clojurec-mode . lsp)
-         (clojurescript-mode . lsp)
-         (go-mode . lsp)
-         (typescript-mode . lsp)
-	 (lsp-mode . lsp-enable-which-key-integration))
+  (lsp-keymap-prefix "C-c l")
+  (lsp-prefer-flymake nil)
+  (lsp-enable-folding nil)
+  (read-process-output-max (* 1024 1024))
+  (lsp-eldoc-hook nil)
+  :bind (:map lsp-mode-map ("C-c C-f" . lsp-format-buffer))
+  :hook
+  ((c-mode
+    clojure-mode
+    clojurescript-mode
+    java-mode
+    go-mode
+    rust-mode
+    typescript-mode) . lsp-deferred)
+  (before-save . lsp-format-buffer)
+  (lsp-mode . lsp-enable-which-key-integration)
   :commands lsp
   :config
   ;; add paths to your local installation of project mgmt tools, like lein
   (setenv "PATH" (concat
                    "/usr/local/bin" path-separator
                    (getenv "PATH")))
-  (dolist (m '(clojure-mode
-	       typescript-mode
-               javascript-mode
-               clojurec-mode
-               clojurescript-mode
-               clojurex-mode
-               go-mode))
-    (add-to-list 'lsp-language-id-configuration `(,m . "clojure"))))
+  (defun lsp-update-server ()
+    "Update LSP server."
+    (interactive)
+    ;; Equals to `C-u M-x lsp-install-server'
+    (lsp-install-server t)))
 
 (use-package lsp-ui
-  :ensure t
-  :commands lsp-ui-mode)
+  :after lsp-mode
+  :diminish
+  :commands lsp-ui-mode
+  :custom-face
+  (lsp-ui-doc-background ((t (:background nil))))
+  (lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic)))))
+  :bind
+  (:map lsp-ui-mode-map
+        ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+        ([remap xref-find-references] . lsp-ui-peek-find-references)
+        ("C-c u" . lsp-ui-imenu)
+        ("M-i" . lsp-ui-doc-focus-frame))
+  (:map lsp-mode-map
+        ("M-n" . forward-paragraph)
+        ("M-p" . backward-paragraph))
+  :custom
+  (lsp-ui-doc-header t)
+  (lsp-ui-doc-include-signature t)
+  (lsp-ui-doc-border (face-foreground 'default))
+  (lsp-ui-sideline-enable nil)
+  (lsp-ui-sideline-ignore-duplicate t)
+  (lsp-ui-sideline-show-code-actions nil)
+  :config
+  ;; Use lsp-ui-doc-webkit only in GUI
+  (when (display-graphic-p)
+    (setq lsp-ui-doc-use-webkit t))
+  ;; WORKAROUND Hide mode-line of the lsp-ui-imenu buffer
+  ;; https://github.com/emacs-lsp/lsp-ui/issues/243
+  (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
+    (setq mode-line-format nil))
+  ;; `C-g'to close doc
+  (advice-add #'keyboard-quit :before #'lsp-ui-doc-hide))
+
+(use-package dap-mode
+  :diminish
+  :bind
+  (:map dap-mode-map
+        (("<f12>" . dap-debug)
+         ("<f8>" . dap-continue)
+         ("<f9>" . dap-next)
+         ("<M-f11>" . dap-step-in)
+         ("C-M-<f11>" . dap-step-out)
+         ("<f7>" . dap-breakpoint-toggle))))
 
 (use-package lsp-treemacs)
+
+;; Haskell
+
+(use-package haskell-mode)
 
 ;; Treemacs
 
 (use-package treemacs
-  :ensure t
   :defer t
   :init
   (with-eval-after-load 'winum
@@ -394,76 +581,59 @@
         ("C-x t M-t" . treemacs-find-tag)))
 
 (use-package treemacs-evil
-  :after (treemacs evil)
-  :ensure t)
+  :after (treemacs evil))
 
 (use-package treemacs-projectile
-  :after (treemacs projectile)
-  :ensure t)
+  :after (treemacs projectile))
 
 (use-package all-the-icons)
 
 (use-package treemacs-icons-dired
-  :hook (dired-mode . treemacs-icons-dired-enable-once)
-  :ensure t)
-
-;; (use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
-;;   :after (treemacs persp-mode) ;;or perspective vs. persp-mode
-;;   :ensure t
-;;   :config (treemacs-set-scope-type 'Perspectives))
-
-;; (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
-;;   :after (treemacs)
-;;   :ensure t
-;;   :config (treemacs-set-scope-type 'Tabs))
+  :hook (dired-mode . treemacs-icons-dired-enable-once))
 
 ;;;; Language support
 ;; General
 (use-package flycheck
+  :defer t
+  :diminish
+  :hook (after-init . global-flycheck-mode)
+  :commands (flycheck-add-mode)
+  :custom
+  (flycheck-global-modes
+   '(not outline-mode diff-mode shell-mode eshell-mode term-mode))
+  (flycheck-emacs-lisp-load-path 'inherit)
+  (flycheck-indication-mode (if (display-graphic-p) 'right-fringe 'right-margin))
+  :init
+  (if (display-graphic-p)
+      (use-package flycheck-posframe
+        :custom-face
+        (flycheck-posframe-face ((t (:foreground ,(face-foreground 'success)))))
+        (flycheck-posframe-info-face ((t (:foreground ,(face-foreground 'success)))))
+        :hook (flycheck-mode . flycheck-posframe-mode)
+        :custom
+        (flycheck-posframe-position 'window-bottom-left-corner)
+        (flycheck-posframe-border-width 3)
+        (flycheck-posframe-inhibit-functions
+         '((lambda (&rest _) (bound-and-true-p company-backend)))))
+    
+    (use-package flycheck-pos-tip
+      :defines flycheck-pos-tip-timeout
+      :hook (flycheck-mode . flycheck-pos-tip-mode)
+      :custom (flycheck-pos-tip-timeout 30)))
+
   :config
-  (add-hook 'after-init-hook 'global-flycheck-mode)
-  ;;    (add-hook 'flycheck-mode-hook 'jc/use-eslint-from-node-modules)
-  ;;    (add-to-list 'flycheck-checkers 'proselint)
-  (setq-default flycheck-highlighting-mode 'lines)
-  ;; Define fringe indicator / warning levels
-  (define-fringe-bitmap 'flycheck-fringe-bitmap-ball
-    (vector #b00000000
-            #b00000000
-            #b00000000
-            #b00000000
-            #b00000000
-            #b00000000
-            #b00000000
-            #b00011100
-            #b00111110
-        111000000000
-            #b00111110
-            #b00011100
-            #b00000000
-            #b00000000
-            #b00000000
-            #b00000000
-            #b00000000))
-  (flycheck-define-error-level 'error
-    :severity 2
-    :overlay-category 'flycheck-error-overlay
-    :fringe-bitmap 'flycheck-fringe-bitmap-ball
-    :fringe-face 'flycheck-fringe-error)
-  (flycheck-define-error-level 'warning
-    :severity 1
-    :overlay-category 'flycheck-warning-overlay
-    :fringe-bitmap 'flycheck-fringe-bitmap-ball
-    :fringe-face 'flycheck-fringe-warning)
-  (flycheck-define-error-level 'info
-    :severity 0
-    :overlay-category 'flycheck-info-overlay
-    :fringe-bitmap 'flycheck-fringe-bitmap-ball
-    :fringe-face 'flycheck-fringe-info))
-
-
-(use-package emojify
-  :hook (after-init . global-emojify-mode))
-(add-hook 'after-init-hook #'global-emojify-mode)
+  (use-package flycheck-popup-tip
+    :hook (flycheck-mode . flycheck-popup-tip-mode))
+  
+  (when (fboundp 'define-fringe-bitmap)
+    (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
+      [16 48 112 240 112 48 16] nil nil 'center))
+  
+  (when (executable-find "vale")
+    (use-package flycheck-vale
+      :config
+      (flycheck-vale-setup)
+      (flycheck-add-mode 'vale 'latex-mode))))
 
 ;; SQL
 
@@ -472,11 +642,18 @@
   (setq sqlformat-command 'pgformatter)
   (setq sqlformat-args '("-s2" "--no-extra-line")))
 
+;; Set Postgres as the default SQL product.
+(setq sql-product "postgres")
+
 ;; Emacs
 
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
+
+;; Dart
+
+(use-package lsp-dart)
 
 ;; Lisp
 
@@ -514,13 +691,14 @@
         cider-repl-wrap-history t)
   :hook
   ((cider-mode . clj-refactor-mode)
-   (before-save . cider-format-buffer))
-  )
-
+   (before-save . cider-format-buffer)))
 
 (use-package clj-refactor
-  :diminish clj-refactor-mode
-  )
+  :diminish clj-refactor-mode)
+
+;; ASCIIDoc
+
+(use-package adoc-mode)
 
 ;; Racket
 
@@ -530,7 +708,18 @@
 (use-package yaml-mode)
 
 ;; Python
+
+(use-package python-mode
+  :ensure nil
+  :after flycheck
+  :mode "\\.py\\'"
+  :custom
+  (python-indent-offset 4)
+  (flycheck-python-pycompile-executable "python3")
+  (python-shell-interpreter "python3"))
+
 (use-package pyvenv)
+
 (use-package blacken
   :hook
   (python-mode-hook))
@@ -547,9 +736,7 @@
    ;; if .dir-locals exists, read it first, then activate mspyls
    (hack-local-variables . (lambda ()
 			     (setq indent-tabs-mode nil)  ; disable tabs
-			     ))
-   )
-  )
+			     ))))
 
 ;; python-black
 (use-package python-black
@@ -558,8 +745,7 @@
   :init
   (put 'python-black-command 'safe-local-variable #'stringp)
   (put 'python-black-extra-args 'safe-local-variable #'stringp)
-  (put 'python-black-on-save-mode 'safe-local-variable #'booleanp)
-  )
+  (put 'python-black-on-save-mode 'safe-local-variable #'booleanp))
 
 (use-package jedi
   :config
@@ -576,7 +762,10 @@
 ;; Go
 (use-package go-mode
   :hook
-  (before-save-hook . gofmt-before-save))
+  (before-save-hook . gofmt-before-save)
+  (subword-mode))
+
+(use-package nix-mode)
 
 ;; JavaScript
 (use-package prettier-js
@@ -590,26 +779,74 @@
   :hook
   (((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
    (typescript-mode . prettier-js-mode)
-   (js-mode-hook . subword-mode))
-)
+   (js-mode-hook . subword-mode)))
 
 ;; Typescript
-(use-package company)
+
+(use-package web-mode
+  :custom-face
+  (css-selector ((t (:inherit default :foreground "#66CCFF"))))
+  (font-lock-comment-face ((t (:foreground "#828282"))))
+  :mode
+  ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.[agj]sp\\'" "\\.as[cp]x\\'"
+   "\\.erb\\'" "\\.mustache\\'" "\\.djhtml\\'" "\\.[t]?html?\\'"))
+
+(use-package json-mode
+  :mode "\\.json\\'")
+
+(use-package company
+  :diminish company-mode
+  :hook ((prog-mode LaTeX-mode latex-mode ess-r-mode) . company-mode)
+  :bind
+  (:map company-active-map
+        ([tab] . smarter-tab-to-complete)
+        ("TAB" . smarter-tab-to-complete))
+  :custom
+  (company-minimum-prefix-length 1)
+  (company-tooltip-align-annotations t)
+  (company-require-match 'never)
+  ;; Don't use company in the following modes
+  (company-global-modes '(not shell-mode eaf-mode))
+  ;; Trigger completion immediately.
+  (company-idle-delay 0.1)
+  ;; Number the candidates (use M-1, M-2 etc to select completions).
+  (company-show-numbers t)
+  :config
+  ;; (unless clangd-p (delete 'company-clang company-backends))
+  (global-company-mode 1)
+  (defun smarter-tab-to-complete ()
+    "Try to `org-cycle', `yas-expand', and `yas-next-field' at current cursor position.
+
+If all failed, try to complete the common part with `company-complete-common'"
+    (interactive)
+    (when yas-minor-mode
+      (let ((old-point (point))
+            (old-tick (buffer-chars-modified-tick))
+            (func-list
+             (if (equal major-mode 'org-mode) '(org-cycle yas-expand yas-next-field)
+               '(yas-expand yas-next-field))))
+        (catch 'func-suceed
+          (dolist (func func-list)
+            (ignore-errors (call-interactively func))
+            (unless (and (eq old-point (point))
+                         (eq old-tick (buffer-chars-modified-tick)))
+              (throw 'func-suceed t)))
+          (company-complete-common))))))
+
 (use-package typescript-mode
   :hook
   ((typescript-mode . company-mode)
-   (typescript-mode . subword-mode)
-   (typescript-mode . prettier-js-mode))
-  )
+   (typescript-subword-mode)
+   (typescript-mode . prettier-js-mode)))
 
-(use-package tide
-  :after (typescript-mode company flycheck)
-  :hook ((typescript-mode . tide-setup)
-         (typescript-mode . tide-hl-identifier-mode)
-         ;(before-save . tide-format-before-save)
-	 )
-  :config
-  (setq company-idle-delay 0))
+;; (use-package tide
+;;   :after (typescript-mode company flycheck)
+;;   :hook ((typescript-mode . tide-setup)
+;;          (typescript-mode . tide-hl-identifier-mode)
+;;          ;(before-save . tide-format-before-save)
+;; 	 )
+;;   :config
+;;   (setq company-idle-delay 0))
 
 ;; Markdown
 (use-package markdown-mode
@@ -626,6 +863,17 @@
 ;;
 (setq JAVA_BASE "/Library/Java/JavaVirtualMachines")
 
+(use-package lsp-java
+  :after lsp-mode
+  :if (executable-find "mvn")
+  :init
+  (use-package request :defer t)
+  :hook
+  (subword-mode)
+  :custom
+  (lsp-java-server-install-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/server/"))
+  (lsp-java-workspace-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/workspace/")))
+
 ;;
 ;; This function returns the list of installed
 ;;
@@ -635,14 +883,12 @@
    (lambda (a) (or (equal a ".") (equal a "..")))
    (directory-files JAVA_BASE)))
 
-
 (defun switch-java--save-env ()
   "Store original PATH and JAVA_HOME."
   (when (not (boundp 'SW_JAVA_PATH))
     (setq SW_JAVA_PATH (getenv "PATH")))
   (when (not (boundp 'SW_JAVA_HOME))
     (setq SW_JAVA_HOME (getenv "JAVA_HOME"))))
-
 
 (defun switch-java ()
   "List the installed JDKs and enable to switch the JDK in use."
@@ -661,7 +907,6 @@
                            ":" SW_JAVA_PATH)))
   ;; show version
   (switch-java-which-version?))
-
 
 (defun switch-java-default ()
   "Restore the default Java version."
@@ -697,16 +942,22 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(company-show-quick-access t nil nil "Customized with use-package company")
  '(custom-safe-themes
    '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
  '(package-selected-packages
-   '(evil-collection treemacs-evil evil-mode slack oauth2 dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company auto-package-update tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
+   '(nix-mode flyspell-correct-ivy crux diminish amx flycheck-popup-tip flycheck-posframe json-mode web-mode flycheck-rust lsp-java java-lsp rust-mode haskell-mode adoc adoc-mode csv-mode lsp-dart evil-collection treemacs-evil evil-mode slack oauth2 dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(css-selector ((t (:inherit default :foreground "#66CCFF"))))
+ '(flycheck-posframe-face ((t (:foreground "#a1b56c"))))
+ '(flycheck-posframe-info-face ((t (:foreground "#a1b56c"))))
+ '(font-lock-comment-face ((t (:foreground "#828282"))))
+ '(lsp-ui-doc-background ((t (:background nil))))
+ '(lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic))))))
 
 (provide 'init)
 ;;; init.el ends here.
