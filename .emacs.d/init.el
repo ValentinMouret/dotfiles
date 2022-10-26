@@ -51,6 +51,23 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
             (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
 ;; -AutoGC
 
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+(setq package-enable-at-startup nil)
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
+
+
 ;; LoadPath
 (defun update-to-load-path (folder)
   "Update FOLDER and its subdirectories to `load-path'."
@@ -242,7 +259,9 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   ("M-x" . smex))
 
 (use-package swiper)
+
 (use-package diminish)
+
 (use-package counsel
   :bind (("M-x" . counsel-M-x)
 	 ("C-x b" . counsel-ibuffer)
@@ -323,6 +342,7 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
 (use-package avy)
 
 (use-package dired
+  :straight (:type built-in)
   :ensure nil
   :bind
   (("C-x C-j" . dired-jump))
@@ -615,7 +635,7 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
         (flycheck-posframe-border-width 3)
         (flycheck-posframe-inhibit-functions
          '((lambda (&rest _) (bound-and-true-p company-backend)))))
-    
+
     (use-package flycheck-pos-tip
       :defines flycheck-pos-tip-timeout
       :hook (flycheck-mode . flycheck-pos-tip-mode)
@@ -624,11 +644,11 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   :config
   (use-package flycheck-popup-tip
     :hook (flycheck-mode . flycheck-popup-tip-mode))
-  
+
   (when (fboundp 'define-fringe-bitmap)
     (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
       [16 48 112 240 112 48 16] nil nil 'center))
-  
+
   (when (executable-find "vale")
     (use-package flycheck-vale
       :config
@@ -691,7 +711,8 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
         cider-repl-wrap-history t)
   :hook
   ((cider-mode . clj-refactor-mode)
-   (before-save . cider-format-buffer)))
+   ; (before-save . cider-format-buffer)
+   ))
 
 (use-package clj-refactor
   :diminish clj-refactor-mode)
@@ -780,6 +801,8 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
    (typescript-mode . prettier-js-mode)
    (js-mode-hook . subword-mode)))
+
+;; (straight-use-package '(tsx-mode :type git :host github :repo "orzechowskid/tsx-mode.el"))
 
 ;; Typescript
 
