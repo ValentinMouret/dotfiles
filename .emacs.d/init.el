@@ -103,9 +103,12 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
 
 ;;;; Editor configuration.
 
-(setq mac-left-option-modifier 'meta)
-(setq mac-left-command-modifier 'meta)
-(setq mac-right-option-modifier nil)
+(setq mac-command-modifier      'super
+      ns-command-modifier       'super
+      mac-option-modifier       'meta
+      ns-option-modifier        'meta
+      mac-left-option-modifier  'none
+      ns-left-option-modifier   'none)
 
 (global-prettify-symbols-mode 1)
 (defun add-pretty-lambda ()
