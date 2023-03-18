@@ -20,7 +20,7 @@
 
 ;; Improve the GC
 
-(defvar better-gc-cons-threshold (* 100 1024 1024) ; 128mb
+(defvar better-gc-cons-threshold (* 50 1024 1024) ; 128mb
   "The default value to use for `gc-cons-threshold'.
 
 If you experience freezing, decrease this.  If you experience stuttering, increase this.")
@@ -51,6 +51,7 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
             (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
 ;; -AutoGC
 
+;; Setup straight.el
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -65,8 +66,11 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (load bootstrap-file nil 'nomessage))
 (setq package-enable-at-startup nil)
 (straight-use-package 'use-package)
-(setq straight-use-package-by-default t)
 
+(setq straight-use-package-by-default t) ; Use `straight.el` with `use-package`.
+
+;; (straight-pull-all)            ; Pulls the source of all the packages.
+;; (straight-check-all)           ; If packages changed, they are re-built and reloaded in a running Emacs.
 
 ;; LoadPath
 (defun update-to-load-path (folder)
@@ -112,7 +116,8 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
 
 (global-prettify-symbols-mode 1)
 (defun add-pretty-lambda ()
-  "Make some word or string show as pretty Unicode symbols.  See https://unicodelookup.com for more."
+  "Make some word or string show as pretty Unicode symbols.
+   See https://unicodelookup.com for more."
   (setq prettify-symbols-alist
         '(("lambda" . 955)
           ("delta" . 120517)
@@ -138,6 +143,14 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (crux-with-region-or-buffer untabify)
   (crux-with-region-or-point-to-eol kill-ring-save)
   (defalias 'rename-file-and-buffer #'crux-rename-file-and-buffer))
+
+(use-package restclient)
+
+(use-package multiple-cursors
+  :bind
+  ("C-z" . mc/mark-next-like-this)
+  ("C-c C-z" . mc/mark-all-like-this)
+  ("C-t" . set-rectangular-region-anchor))
 
 ;; Sets up exec-path-from shell
 ;; https://github.com/purcell/exec-path-from-shell
@@ -251,16 +264,6 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
           ("C-." . flyspell-correct-wrapper))
     :custom (flyspell-correct-interface #'flyspell-correct-ivy)))
 
-(use-package smex
-  ;; Enhances M-x to allow easier execution of commands. Provides
-  ;; a filterable list of possible commands in the minibuffer
-  ;; http://www.emacswiki.org/emacs/Smex
-  :config
-  (smex-initialize)
-  (setq smex-save-file (concat user-emacs-directory ".smex-items"))
-  :bind
-  ("M-x" . smex))
-
 (use-package swiper)
 
 (use-package diminish)
@@ -324,12 +327,12 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (define-key evil-normal-state-map "L" nil)
   (define-key evil-normal-state-map "k" 'evil-substitute)
   (define-key evil-normal-state-map "K" 'evil-change-whole-line)
-                                        ;même chose mais cette fois pour l’état motion
-  (define-key evil-motion-state-map "c" 'evil-backward-char)
+                                        ;; même chose mais cette fois pour l’état motion
+  (define-key evil-motion-state-map "t" 'evil-backward-char)
   (define-key evil-motion-state-map "C" 'evil-window-top)
-  (define-key evil-motion-state-map "t" 'evil-next-line)
+  (define-key evil-motion-state-map "r" 'evil-next-line)
   (define-key evil-motion-state-map "s" 'evil-previous-line)
-  (define-key evil-motion-state-map "r" 'evil-forward-char)
+  (define-key evil-motion-state-map "n" 'evil-forward-char)
   (define-key evil-motion-state-map "R" 'evil-window-bottom)
   (define-key evil-motion-state-map "j" 'evil-find-char-to)
   (define-key evil-motion-state-map "gd" 'xref-find-definitions)
@@ -401,7 +404,7 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
 (use-package which-key
   :init (which-key-mode)
   :diminish which-key-mode
-  :config (setq which-key-idle-delay 0.3))
+  :config (setq which-key-idle-delay 0.1))
 
 (use-package projectile
   :diminish projectile-mode
@@ -412,8 +415,8 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :init
-  (when (file-directory-p "~/Code")
-    (setq projectile-project-search-path '("~/Code")))
+  (when (file-directory-p "~/Developer")
+    (setq projectile-project-search-path '("~/Developer")))
   (setq projectile-switch-project-action #'projectile-dired))
 
 (use-package counsel-projectile
@@ -665,9 +668,6 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (setq sqlformat-command 'pgformatter)
   (setq sqlformat-args '("-s2" "--no-extra-line")))
 
-;; Set Postgres as the default SQL product.
-(setq sql-product "postgres")
-
 ;; Emacs
 
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
@@ -711,11 +711,17 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
         cider-show-error-buffer t
         cider-auto-select-error-buffer t
         cider-repl-history-file "~/.emacs.d/cider-history"
-        cider-repl-wrap-history t)
+        cider-repl-wrap-history t
+        cider-repl-display-help-banner nil
+        cider-repl-pop-to-buffer-on-connect nil)
+    ;; Inject shadowcljs nrepl middleware in cider-jack-in when the `:cljs' alias is set
+  (defun cider-cli-global-options-contains-cljs? (&rest _)
+    (and cider-clojure-cli-global-options
+         (s-contains? ":cljs" cider-clojure-cli-global-options)))
+  (add-to-list 'cider-jack-in-nrepl-middlewares
+               '("shadow.cljs.devtools.server.nrepl/middleware" :predicate cider-cli-global-options-contains-cljs?))
   :hook
-  ((cider-mode . clj-refactor-mode)
-   ; (before-save . cider-format-buffer)
-   ))
+  (cider-mode . clj-refactor-mode))
 
 (use-package clj-refactor
   :diminish clj-refactor-mode)
@@ -864,15 +870,6 @@ If all failed, try to complete the common part with `company-complete-common'"
   ((typescript-mode . company-mode)
    (typescript-subword-mode)
    (typescript-mode . prettier-js-mode)))
-
-;; (use-package tide
-;;   :after (typescript-mode company flycheck)
-;;   :hook ((typescript-mode . tide-setup)
-;;          (typescript-mode . tide-hl-identifier-mode)
-;;          ;(before-save . tide-format-before-save)
-;; 	 )
-;;   :config
-;;   (setq company-idle-delay 0))
 
 ;; Markdown
 (use-package markdown-mode
