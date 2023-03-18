@@ -22,7 +22,7 @@ function brew::install_packages() {
 
 function brew::setup() {
     brew::install_if_absent &&
-        brew:install_packages
+        brew::install_packages
 }
 
 function emacs::setup() {
@@ -31,9 +31,7 @@ function emacs::setup() {
         rm -rf "$emacs_dir_path"
     fi
     mkdir -p "$emacs_dir_path"
-    ln -sf "./setup" "$emacs_dir_path"
-    ln -sf "./config" "$emacs_dir_path"
-    ln -sf "./init.el" "$emacs_dir_path/init.el"
+    cp -r .emacs.d/* "$emacs_dir_path"
 }
 
 echo "Setting up Homebrew"
@@ -41,6 +39,3 @@ brew::setup
 
 echo "Setting up Emacs"
 emacs::setup
-
-echo "Copying the fish configuration."
-cp -r fish_config ~/.config/fish
