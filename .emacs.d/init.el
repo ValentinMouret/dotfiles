@@ -14,124 +14,46 @@
 ;;
 ;; A lot of the content here comes from https://github.com/MatthewZMD/.emacs.d#org14e341b.
 ;;
+;; An Emacs configuration is a funny thing.
+;; It is a very zen thing.  The editor does not change, or barely.
+;; What changes is the understanding of the editor.
+;;
+;; It is the record of what I learned about programming, written in a
+;; way that makes it easy to setup on another computer (mostly).
+;; It is reinforced by the fact that Emacs has a gravity.  It pulls stuff inwards.
+;; You want to do as much as possible from Emacs to increase the compounding effect.
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;; Code:
 
-;; Improve the GC
-
-(defvar better-gc-cons-threshold (* 50 1024 1024) ; 128mb
-  "The default value to use for `gc-cons-threshold'.
-
-If you experience freezing, decrease this.  If you experience stuttering, increase this.")
-
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq gc-cons-threshold better-gc-cons-threshold)
-            (setq file-name-handler-alist file-name-handler-alist-original)
-            (makunbound 'file-name-handler-alist-original)))
-
-;; AutoGC
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (if (boundp 'after-focus-change-function)
-                (add-function :after after-focus-change-function
-                              (lambda ()
-                                (unless (frame-focus-state)
-                                  (garbage-collect))))
-              (add-hook 'after-focus-change-function 'garbage-collect))
-            (defun gc-minibuffer-setup-hook ()
-              (setq gc-cons-threshold (* better-gc-cons-threshold 2)))
-
-            (defun gc-minibuffer-exit-hook ()
-              (garbage-collect)
-              (setq gc-cons-threshold better-gc-cons-threshold))
-
-            (add-hook 'minibuffer-setup-hook #'gc-minibuffer-setup-hook)
-            (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
-;; -AutoGC
-
-;; Setup straight.el
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 6))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
-(setq package-enable-at-startup nil)
-(straight-use-package 'use-package)
-
-(setq straight-use-package-by-default t) ; Use `straight.el` with `use-package`.
-
-;; (straight-pull-all)            ; Pulls the source of all the packages.
-;; (straight-check-all)           ; If packages changed, they are re-built and reloaded in a running Emacs.
-
-;; LoadPath
-(defun update-to-load-path (folder)
-  "Update FOLDER and its subdirectories to `load-path'."
-  (let ((base folder))
-    (unless (member base load-path)
-      (add-to-list 'load-path base))
-    (dolist (f (directory-files base))
-      (let ((name (concat base "/" f)))
-        (when (and (file-directory-p name)
-                   (not (equal f ".."))
-                   (not (equal f ".")))
-          (unless (member base load-path)
-            (add-to-list 'load-path name)))))))
-
-(update-to-load-path (expand-file-name "elisp" user-emacs-directory))
-;; -LoadPath
-
-;; Constants
+(require 'early-init)
 
 (require 'init-const)
 
-;; Packages
-
 (require 'init-package)
-
-;; Global functionalities
 
 (require 'init-global-config)
 
-;; Initialize the package archives:
+(require 'init-editor)
 
+;; Initialize the package archives:
 (require 'package)
 
 ;;;; Editor configuration.
 
-(setq mac-command-modifier      'super
-      ns-command-modifier       'super
-      mac-option-modifier       'meta
-      ns-option-modifier        'meta
-      mac-left-option-modifier  'none
-      ns-left-option-modifier   'none)
-
-(global-prettify-symbols-mode 1)
-(defun add-pretty-lambda ()
-  "Make some word or string show as pretty Unicode symbols.
-   See https://unicodelookup.com for more."
-  (setq prettify-symbols-alist
-        '(("lambda" . 955)
-          ("delta" . 120517)
-          ("epsilon" . 120518)
-          ("->" . 8594)
-          ("<=" . 8804)
-          (">=" . 8805))))
-(add-hook 'prog-mode-hook 'add-pretty-lambda)
-(add-hook 'org-mode-hook 'add-pretty-lambda)
-
+;; Sets up exec-path-from shell
+;; https://github.com/purcell/exec-path-from-shell
 (use-package exec-path-from-shell
   :config
-  (exec-path-from-shell-copy-env "GOOGLE_APPLICATION_CREDENTIALS"))
+  (exec-path-from-shell-copy-env "GOOGLE_APPLICATION_CREDENTIALS")
+  (when (memq window-system '(mac ns))
+    (exec-path-from-shell-initialize)
+    (exec-path-from-shell-copy-envs
+     '("PATH"))))
 
+;; crux: https://github.com/bbatsov/crux
+;; Provides useful replacement of functions.
 (use-package crux
   :bind
   (("C-a" . crux-move-beginning-of-line)
@@ -143,107 +65,6 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (crux-with-region-or-buffer untabify)
   (crux-with-region-or-point-to-eol kill-ring-save)
   (defalias 'rename-file-and-buffer #'crux-rename-file-and-buffer))
-
-(use-package restclient)
-
-(use-package multiple-cursors
-  :bind
-  ("C-z" . mc/mark-next-like-this)
-  ("C-c C-z" . mc/mark-all-like-this)
-  ("C-t" . set-rectangular-region-anchor))
-
-;; Sets up exec-path-from shell
-;; https://github.com/purcell/exec-path-from-shell
-(when (memq window-system '(mac ns))
-  (exec-path-from-shell-initialize)
-  (exec-path-from-shell-copy-envs
-   '("PATH")))
-
-(setq locale-coding-system 'utf-8)
-(set-terminal-coding-system 'utf-8)
-(set-keyboard-coding-system 'utf-8)
-(set-selection-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-(set-language-environment "UTF-8")
-
-(add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
-(add-to-list 'default-frame-alist '(ns-appearance . dark))
-
-;; Show line numbers.
-(column-number-mode)
-(global-display-line-numbers-mode t)
-;; Disable line numbers for some modes.
-(dolist (mode '(org-mode-hook
-		term-mode-hook
-		shell-mode-hook
-		eshell-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 0))))
-
-(defvar emacs-autosave-directory
-  (concat user-emacs-directory "autosaves/"))
-
-(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
-      backup-by-copying t    ;; Don't delink hardlinks
-      version-control t      ;; Use version numbers on backups
-      delete-old-versions t  ;; Automatically delete excess backups
-      kept-new-versions 20   ;; how many of the newest versions to keep
-      kept-old-versions 5    ;; and how many of the old
-      )
-
-(use-package emojify)
-
-;; Load the dark theme from base16.
-(use-package base16-theme)
-(setq base16-highlight-mode-line 'false)
-(setq base16-theme-256-color-source "colors")
-(load-theme 'base16-default-dark t)
-;; (load-theme 'base16-default-light t)
-
-;; No need for ~ files when editing
-(setq create-lockfiles nil)
-
-;; Go straight to scratch buffer on startup
-(setq inhibit-startup-message t)
-
-(set-frame-font "Iosevka Term 14" nil t)
-
-(require 'uniquify)
-(setq uniquify-buffer-name-style 'forward)
-
-(setq recentf-save-file (concat user-emacs-directory ".recentf"))
-(require 'recentf)
-(recentf-mode 1)
-(setq recentf-max-menu-items 40)
-
-;; ido-mode allows you to more easily navigate choices. For example,
-;; when you want to switch buffers, ido presents you with a list
-;; of buffers in the the mini-buffer. As you start to type a buffer's
-;; name, ido will narrow down the list of buffers to match the text
-;; you've typed in
-;; http://www.emacswiki.org/emacs/InteractivelyDoThings
-(ido-mode t)
-
-;; This allows partial matches, e.g. "tl" will match "Tyrion Lannister"
-(setq ido-enable-flex-matching t)
-
-;; Turn this behavior off because it's annoying
-(setq ido-use-filename-at-point nil)
-
-;; Don't try to match file across all "work" directories; only match files
-;; in the current directory displayed in the minibuffer
-(setq ido-auto-merge-work-directories-length -1)
-
-;; Includes buffer names of recently open files, even if they're not
-;; open now
-(setq ido-use-virtual-buffers t)
-
-;; This enables ido in all contexts where it could be useful, not just
-;; for selecting buffer and file names
-(ido-everywhere t)
-
-;; Shows a list of buffers
-(global-set-key (kbd "C-x C-b") 'ibuffer)
-
 
 (use-package flyspell
   :ensure nil
@@ -308,9 +129,11 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   :bind
   ("M-." . xref-find-definitions))
 
+(evil-mode 1)
+
 (use-package evil-collection
   :after evil
-    :config
+  :config
   (define-key evil-normal-state-map "c" nil)
   (define-key evil-normal-state-map "C" nil)
   (define-key evil-normal-state-map "s" nil)
@@ -327,17 +150,28 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (define-key evil-normal-state-map "L" nil)
   (define-key evil-normal-state-map "k" 'evil-substitute)
   (define-key evil-normal-state-map "K" 'evil-change-whole-line)
-                                        ;; même chose mais cette fois pour l’état motion
-  (define-key evil-motion-state-map "t" 'evil-backward-char)
+                                        ;même chose mais cette fois pour l’état motion
+  (define-key evil-motion-state-map "c" 'evil-backward-char)
   (define-key evil-motion-state-map "C" 'evil-window-top)
-  (define-key evil-motion-state-map "r" 'evil-next-line)
+  (define-key evil-motion-state-map "t" 'evil-next-line)
   (define-key evil-motion-state-map "s" 'evil-previous-line)
-  (define-key evil-motion-state-map "n" 'evil-forward-char)
+  (define-key evil-motion-state-map "r" 'evil-forward-char)
   (define-key evil-motion-state-map "R" 'evil-window-bottom)
   (define-key evil-motion-state-map "j" 'evil-find-char-to)
   (define-key evil-motion-state-map "gd" 'xref-find-definitions)
   (define-key evil-motion-state-map "." 'xref-go-back)
-  (define-key evil-motion-state-map "J" 'evil-find-char-to-backward))
+  (define-key evil-motion-state-map "J" 'evil-find-char-to-backward)
+
+  ;; Bindings for neotree.
+  (evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
+  (evil-define-key 'normal neotree-mode-map (kbd "SPC") 'neotree-quick-look)
+  (evil-define-key 'normal neotree-mode-map (kbd "q") 'neotree-hide)
+  (evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
+  (evil-define-key 'normal neotree-mode-map (kbd "g") 'neotree-refresh)
+  (evil-define-key 'normal neotree-mode-map (kbd "n") 'neotree-next-line)
+  (evil-define-key 'normal neotree-mode-map (kbd "p") 'neotree-previous-line)
+  (evil-define-key 'normal neotree-mode-map (kbd "A") 'neotree-stretch-toggle)
+  (evil-define-key 'normal neotree-mode-map (kbd "H") 'neotree-hidden-file-toggle))
 
 (use-package ivy-rich
   :init
@@ -398,25 +232,27 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   :config
   (doom-modeline-mode))
 
+;; (hidden-mode-line-mode 1)
+
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package which-key
   :init (which-key-mode)
   :diminish which-key-mode
-  :config (setq which-key-idle-delay 0.1))
+  :config (setq which-key-idle-delay 0.3))
 
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
   (setq projectile-after-switch-project-hook 'magit-status)
   (add-to-list 'projectile-globally-ignored-directories "node_modules")
-  :custom ((projectile-completion-system 'ivy))
+  :custom ((projectile-completion-system 'swiper))
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :init
-  (when (file-directory-p "~/Developer")
-    (setq projectile-project-search-path '("~/Developer")))
+  (when (file-directory-p "~/Code")
+    (setq projectile-project-search-path '("~/Code")))
   (setq projectile-switch-project-action #'projectile-dired))
 
 (use-package counsel-projectile
@@ -504,6 +340,11 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   ;; `C-g'to close doc
   (advice-add #'keyboard-quit :before #'lsp-ui-doc-hide))
 
+(use-package multiple-cursors
+ :bind
+ ("C-t" . set-rectangular-region-anchor)
+ ("C-z" . mc/mark-next-like-this))
+
 (use-package dap-mode
   :diminish
   :bind
@@ -515,107 +356,18 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
          ("C-M-<f11>" . dap-step-out)
          ("<f7>" . dap-breakpoint-toggle))))
 
-(use-package lsp-treemacs)
+;; (use-package lsp-treemacs)
+
+(use-package neotree
+  :bind
+  (:map global-map
+        (("C-c C-t" . neotree-toggle))))
 
 ;; Haskell
 
 (use-package haskell-mode)
 
-;; Treemacs
-
-(use-package treemacs
-  :defer t
-  :init
-  (with-eval-after-load 'winum
-    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
-  :config
-  (progn
-    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
-          treemacs-deferred-git-apply-delay        0.5
-          treemacs-directory-name-transformer      #'identity
-          treemacs-display-in-side-window          t
-          treemacs-eldoc-display                   'simple
-          treemacs-file-event-delay                5000
-          treemacs-file-extension-regex            treemacs-last-period-regex-value
-          treemacs-file-follow-delay               0.2
-          treemacs-file-name-transformer           #'identity
-          treemacs-follow-after-init               t
-          treemacs-expand-after-init               t
-          treemacs-find-workspace-method           'find-for-file-or-pick-first
-          treemacs-git-command-pipe                ""
-          treemacs-goto-tag-strategy               'refetch-index
-          treemacs-indentation                     2
-          treemacs-indentation-string              " "
-          treemacs-is-never-other-window           nil
-          treemacs-max-git-entries                 5000
-          treemacs-missing-project-action          'ask
-          treemacs-move-forward-on-expand          nil
-          treemacs-no-png-images                   nil
-          treemacs-no-delete-other-windows         t
-          treemacs-project-follow-cleanup          nil
-          treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
-          treemacs-position                        'left
-          treemacs-read-string-input               'from-child-frame
-          treemacs-recenter-distance               0.1
-          treemacs-recenter-after-file-follow      nil
-          treemacs-recenter-after-tag-follow       nil
-          treemacs-recenter-after-project-jump     'always
-          treemacs-recenter-after-project-expand   'on-distance
-          treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
-          treemacs-show-cursor                     nil
-          treemacs-show-hidden-files               t
-          treemacs-silent-filewatch                nil
-          treemacs-silent-refresh                  nil
-          treemacs-sorting                         'alphabetic-asc
-          treemacs-select-when-already-in-treemacs 'move-back
-          treemacs-space-between-root-nodes        t
-          treemacs-tag-follow-cleanup              t
-          treemacs-tag-follow-delay                1.5
-          treemacs-text-scale                      nil
-          treemacs-user-mode-line-format           nil
-          treemacs-user-header-line-format         nil
-          treemacs-wide-toggle-width               70
-          treemacs-width                           35
-          treemacs-width-increment                 1
-          treemacs-width-is-initially-locked       t
-          treemacs-workspace-switch-cleanup        nil)
-
-    ;; The default width and height of the icons is 22 pixels. If you are
-    ;; using a Hi-DPI display, uncomment this to double the icon size.
-    ;;(treemacs-resize-icons 44)
-
-    (treemacs-follow-mode t)
-    (treemacs-filewatch-mode t)
-    (treemacs-fringe-indicator-mode 'always)
-
-    (pcase (cons (not (null (executable-find "git")))
-                 (not (null treemacs-python-executable)))
-      (`(t . t)
-       (treemacs-git-mode 'deferred))
-      (`(t . _)
-       (treemacs-git-mode 'simple)))
-
-    (treemacs-hide-gitignored-files-mode nil))
-  :bind
-  (:map global-map
-        ("M-0"       . treemacs-select-window)
-        ("C-x t 1"   . treemacs-delete-other-windows)
-        ("C-x t t"   . treemacs)
-        ("C-x t d"   . treemacs-select-directory)
-        ("C-x t B"   . treemacs-bookmark)
-        ("C-x t C-t" . treemacs-find-file)
-        ("C-x t M-t" . treemacs-find-tag)))
-
-(use-package treemacs-evil
-  :after (treemacs evil))
-
-(use-package treemacs-projectile
-  :after (treemacs projectile))
-
 (use-package all-the-icons)
-
-(use-package treemacs-icons-dired
-  :hook (dired-mode . treemacs-icons-dired-enable-once))
 
 ;;;; Language support
 ;; General
@@ -668,6 +420,9 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
   (setq sqlformat-command 'pgformatter)
   (setq sqlformat-args '("-s2" "--no-extra-line")))
 
+;; Set Postgres as the default SQL product.
+(setq sql-product "postgres")
+
 ;; Emacs
 
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
@@ -711,17 +466,10 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
         cider-show-error-buffer t
         cider-auto-select-error-buffer t
         cider-repl-history-file "~/.emacs.d/cider-history"
-        cider-repl-wrap-history t
-        cider-repl-display-help-banner nil
-        cider-repl-pop-to-buffer-on-connect nil)
-    ;; Inject shadowcljs nrepl middleware in cider-jack-in when the `:cljs' alias is set
-  (defun cider-cli-global-options-contains-cljs? (&rest _)
-    (and cider-clojure-cli-global-options
-         (s-contains? ":cljs" cider-clojure-cli-global-options)))
-  (add-to-list 'cider-jack-in-nrepl-middlewares
-               '("shadow.cljs.devtools.server.nrepl/middleware" :predicate cider-cli-global-options-contains-cljs?))
+        cider-repl-wrap-history t)
+  ; (add-to-list 'cider-jack-in-nrepl-middlewares '("shadow.cljs.devtools.server.nrepl/middleware"))
   :hook
-  (cider-mode . clj-refactor-mode))
+  ((cider-mode . clj-refactor-mode)))
 
 (use-package clj-refactor
   :diminish clj-refactor-mode)
@@ -797,7 +545,14 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
 
 (use-package nix-mode)
 
+(use-package restclient)
+
 ;; JavaScript
+
+(use-package rjsx-mode
+  :config
+  (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode)))
+
 (use-package prettier-js
   :config
   (setq prettier-js-args '(
@@ -828,7 +583,8 @@ If you experience freezing, decrease this.  If you experience stuttering, increa
 
 (use-package company
   :diminish company-mode
-  :hook ((prog-mode LaTeX-mode latex-mode ess-r-mode) . company-mode)
+  :hook (((prog-mode LaTeX-mode latex-mode ess-r-mode) . company-mode)
+         ((prog-mode) . yas-minor-mode))
   :bind
   (:map company-active-map
         ([tab] . smarter-tab-to-complete)
@@ -870,6 +626,15 @@ If all failed, try to complete the common part with `company-complete-common'"
   ((typescript-mode . company-mode)
    (typescript-subword-mode)
    (typescript-mode . prettier-js-mode)))
+
+;; (use-package tide
+;;   :after (typescript-mode company flycheck)
+;;   :hook ((typescript-mode . tide-setup)
+;;          (typescript-mode . tide-hl-identifier-mode)
+;;          ;(before-save . tide-format-before-save)
+;; 	 )
+;;   :config
+;;   (setq company-idle-delay 0))
 
 ;; Markdown
 (use-package markdown-mode
@@ -981,6 +746,8 @@ If all failed, try to complete the common part with `company-complete-common'"
  '(font-lock-comment-face ((t (:foreground "#828282"))))
  '(lsp-ui-doc-background ((t (:background nil))))
  '(lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic))))))
+
+(require 'init-magit)
 
 (provide 'init)
 ;;; init.el ends here.

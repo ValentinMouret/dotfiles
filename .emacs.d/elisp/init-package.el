@@ -22,8 +22,6 @@
       '(("gnu"   . "https://elpa.gnu.org/packages/")
         ("melpa" . "https://melpa.org/packages/")
         ("cselpa" . "https://elpa.thecybershadow.net/packages/")
-        ;; ("melpa-cn" . "http://mirrors.cloud.tencent.com/elpa/melpa/")
-        ;; ("gnu-cn"   . "http://mirrors.cloud.tencent.com/elpa/gnu/")
         ))
 ;; -MelpaPackages
 
@@ -55,6 +53,23 @@
   (require 'bind-key))
 ;; -ConfigureUsePackage
 
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(setq package-enable-at-startup nil)
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
+
 ;; AutoPackageUpdate
 (use-package auto-package-update
   :if (not (daemonp))
@@ -73,7 +88,7 @@
 
 (defun recompile-source ()
   "Recompiles sources as they sometimes get stuck."
-  (interactive "p")
+  (interactive)
   (byte-recompile-directory package-user-dir nil 'force))
 
 (provide 'init-package)
