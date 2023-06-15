@@ -16,7 +16,7 @@ export DEV_HOME=~/Developer/valentinmouret
 ZSH_FILES_PATH=$HOME/.zsh
 
 # Enable autocomplete
-source $CODE_PATH/marlonrichert/zsh-autocomplete/zsh-autocomplete.plugin.zsh
+# source $CODE_PATH/marlonrichert/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 
 export EDITOR='emacs'
 
@@ -27,7 +27,6 @@ export EDITOR='emacs'
 #
 # Each module essentially does not depend on others.
 configs=(
-  bb.sh
   conda.sh
   emacs.sh
   # gcp.sh
@@ -41,6 +40,7 @@ configs=(
   # rbenv.sh
   spaceship.sh
   volta.sh
+  bb.sh         # Has to be after one of the above. Unclear which.
 )
 for module in "${configs[@]}"
 do
