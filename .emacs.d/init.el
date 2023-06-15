@@ -718,6 +718,16 @@ If all failed, try to complete the common part with `company-complete-common'"
 (setq-default sh-basic-offset 2)
 (setq-default sh-indentation 2)
 
+;; AI
+(use-package copilot
+  :straight (:host github
+             :repo "zerolfx/copilot.el"
+             :files ("dist" "*.el"))
+  :hook (prog-mode . copilot-mode)
+  :config (setq copilot-idle-delay 0.01)
+  :bind (("C-c ." . copilot-accept-completion)
+         ("C-c x" . copilot-complete)))
+
 (use-package flymake-shellcheck
   :commands flymake-shellcheck-load
   :hook
