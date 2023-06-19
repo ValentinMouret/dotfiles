@@ -41,6 +41,7 @@ configs=(
   spaceship.sh
   volta.sh
   bb.sh         # Has to be after one of the above. Unclear which.
+  nvim.sh
 )
 for module in "${configs[@]}"
 do

@@ -82,7 +82,7 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "Iosevka Term 14" nil t)
+(set-frame-font "JetBrains Mono 12" nil t)
 
 (require 'uniquify)
 
@@ -95,6 +95,20 @@
 
 ;; Shows a list of buffers
 (global-set-key (kbd "C-x C-b") 'ibuffer)
+
+
+;; This package makes the buffer centered when there is only one.
+;; As soon as more buffers are opened, it will be disabled.
+(use-package olivetti
+  :init
+  (setq olivetti-body-width 0.5)        ; adjust to taste
+  (defun adjust-window-width ()
+    (if (one-window-p)
+        (olivetti-mode)
+      (olivetti-mode -1)))
+  :config
+  (add-hook 'window-configuration-change-hook 'adjust-window-width))
+
 
 (provide 'init-editor)
 

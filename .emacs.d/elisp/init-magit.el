@@ -24,7 +24,6 @@
     (interactive)
     (magit-log-buffer-file t)))
 
-(use-package forge)
 
 (provide 'init-magit)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
