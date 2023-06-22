@@ -109,6 +109,9 @@
   :config
   (add-hook 'window-configuration-change-hook 'adjust-window-width))
 
+(use-package writeroom-mode
+  :bind
+  ("C-c w" . writeroom-mode))
 
 (provide 'init-editor)
 
