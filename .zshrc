@@ -38,6 +38,7 @@ configs=(
   pnpm.sh
   pyenv.sh
   # rbenv.sh
+  rust.sh
   spaceship.sh
   volta.sh
   bb.sh         # Has to be after one of the above. Unclear which.
@@ -48,6 +49,7 @@ do
   source "$ZSH_FILES_PATH/$module"
 done
 
+# General aliases
 alias ll="exa -l"
 alias ls=exa
 alias cat=bat
