@@ -113,6 +113,9 @@
   :bind
   ("C-c w" . writeroom-mode))
 
+(use-package golden-ratio)
+(golden-ratio-mode 1)
+
 (provide 'init-editor)
 
 ;;; init-editor ends here
