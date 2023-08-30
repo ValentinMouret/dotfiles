@@ -176,6 +176,8 @@
   (evil-define-key 'normal neotree-mode-map (kbd "A") 'neotree-stretch-toggle)
   (evil-define-key 'normal neotree-mode-map (kbd "H") 'neotree-hidden-file-toggle))
 
+(evil-mode 0)
+
 (use-package ivy-rich
   :init
   (ivy-rich-mode 1))
