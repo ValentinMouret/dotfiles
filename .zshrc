@@ -18,8 +18,6 @@ ZSH_FILES_PATH=$HOME/.zsh
 # Enable autocomplete
 # source $CODE_PATH/marlonrichert/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 
-export EDITOR='emacs'
-
 # Modules
 # -------
 # Different modules exist to handle orthogonal functionalities.
@@ -28,8 +26,6 @@ export EDITOR='emacs'
 # Each module essentially does not depend on others.
 configs=(
   conda.sh
-  emacs.sh
-  # gcp.sh
   git.sh
   go.sh
   jenv.sh
@@ -37,7 +33,6 @@ configs=(
   nvm.sh
   pnpm.sh
   pyenv.sh
-  # rbenv.sh
   rust.sh
   spaceship.sh
   volta.sh
@@ -54,3 +49,6 @@ alias ll="exa -l"
 alias ls=exa
 alias cat=bat
 alias grep=rg
+eval "$(atuin init zsh)"
+
+export EDITOR="emacs"
