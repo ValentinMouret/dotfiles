@@ -296,7 +296,8 @@
     java-mode
     go-mode
     rust-mode
-    typescript-mode) . lsp-deferred)
+    typescript-mode
+    zig-mode) . lsp-deferred)
   (before-save . lsp-format-buffer)
   (lsp-mode . lsp-enable-which-key-integration)
   :commands lsp
@@ -338,6 +339,7 @@
   ;; Use lsp-ui-doc-webkit only in GUI
   (when (display-graphic-p)
     (setq lsp-ui-doc-use-webkit t))
+  (setq lsp-zig-zls-executable "/Users/valentinmouret/bin/zls")
   ;; WORKAROUND Hide mode-line of the lsp-ui-imenu buffer
   ;; https://github.com/emacs-lsp/lsp-ui/issues/243
   (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
@@ -738,6 +740,13 @@ If all failed, try to complete the common part with `company-complete-common'"
   :commands flymake-shellcheck-load
   :hook
   (sh-mode-hook . flymake-shellcheck-load))
+
+(use-package zig-mode)
+
+;; Run Emacs in server mode.
+;; This allows other programs to use it using the `EDITOR` environment variable.
+(unless server-process
+  (server-start))
 
 ;; Custom
 ;; This area is set by Custom. Don’t touch it.
