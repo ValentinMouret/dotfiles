@@ -124,6 +124,9 @@
       (interactive)
     (ivy--cd "~/")))
 
+(use-package emojify)
+(emojify-mode t)
+
 (use-package evil
   :init (setq evil-want-keybinding nil)
   :bind
