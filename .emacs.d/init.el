@@ -432,9 +432,11 @@
 
 ;; Emacs
 
-(add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
-(add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
-(add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
+;; (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+;; (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+;; (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
+
+(global-eldoc-mode -1)
 
 ;; Dart
 
@@ -669,6 +671,7 @@ If all failed, try to complete the common part with `company-complete-common'"
   :custom
   (lsp-java-server-install-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/server/"))
   (lsp-java-workspace-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/workspace/")))
+
 
 ;;
 ;; This function returns the list of installed
