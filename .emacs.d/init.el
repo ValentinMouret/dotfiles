@@ -748,8 +748,10 @@ If all failed, try to complete the common part with `company-complete-common'"
 
 ;; Run Emacs in server mode.
 ;; This allows other programs to use it using the `EDITOR` environment variable.
-(unless server-process
+(unless (boundp 'server-process)
   (server-start))
+
+(require 'init-magit)
 
 ;; Custom
 ;; This area is set by Custom. Don’t touch it.
@@ -774,8 +776,6 @@ If all failed, try to complete the common part with `company-complete-common'"
  '(font-lock-comment-face ((t (:foreground "#828282"))))
  '(lsp-ui-doc-background ((t (:background nil))))
  '(lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic))))))
-
-(require 'init-magit)
 
 (provide 'init)
 ;;; init.el ends here.
