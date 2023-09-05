@@ -59,7 +59,10 @@ cask "dash"
 cask "discord"
 cask "dozer"
 cask "firefox"
+
+tap "homebrew/cask-fonts"
 cask "font-iosevka"
+
 cask "google-chrome"
 cask "google-cloud-sdk"
 cask "hey"
