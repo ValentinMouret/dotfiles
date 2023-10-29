@@ -35,10 +35,57 @@
 
 (require 'init-global-config)
 
-(require 'init-editor)
 
 ;; Initialize the package archives:
 (require 'package)
+
+(use-package org
+  :bind
+  (("C-c a" . org-agenda))
+  :config
+  (setq org-directory "~/Documents")
+  (setq org-agenda-files '("~/Documents/interop.org"
+                           "~/Documents/birthdays.org"
+                           "~/Documents/habits.org"
+                           "~/Documents/perso.org"
+                           "~/Notes"))
+  (setq org-agenda-start-with-log-mode t)
+  (setq org-log-done 'time)
+  (setq org-log-into-drawer '())
+
+  (org-toggle-pretty-entities)
+
+  (setq org-todo-keywords
+        '((sequence "BACKLOG(b)" "TODO(t)" "ACTIVE(a)" "|" "DONE(d!)" ;; The pipe `|` signifies that entries to the right are «completed» states.
+                    )))
+
+  (require 'org-habit)
+  (add-to-list 'org-modules 'org-habit)
+
+  (setq org-habit-graph-column 60))
+
+
+(use-package org-roam
+  :init
+  (setq org-roam-v2-ack t)
+  
+  :custom
+  ((org-roam-directory "~/Notes")
+   (org-roam-dailies-directory "Journal")
+   (org-roam-dailies-capture-templates '(("d" "default" entry
+                                          "* %?"
+                                          :target (file+head "%<%Y-%m-%d>.org"
+                                                             "#+title: %<%Y-%m-%d>\n")))))
+  
+  :bind
+  (("C-c n l" . org-roam-buffer-toggle)
+   ("C-c n f" . org-roam-node-find)
+   ("C-c n i" . org-roam-node-insert)
+   ("C-c n d" . org-roam-dailies-goto-today)))
+
+(use-package rg)
+
+(require 'init-editor)
 
 ;;;; Editor configuration.
 
@@ -422,6 +469,7 @@
 
 ;; SQL
 
+
 (use-package sqlformat
   :config
   (setq sqlformat-command 'pgformatter)
@@ -441,6 +489,12 @@
 ;; Dart
 
 (use-package lsp-dart)
+
+;; Haskell
+(use-package haskell-mode)
+
+(use-package lsp-haskell)
+
 
 ;; Lisp
 
@@ -500,6 +554,7 @@
   :ensure nil
   :after flycheck
   :mode "\\.py\\'"
+  :hook (subword-mode)
   :custom
   (python-indent-offset 4)
   (flycheck-python-pycompile-executable "python3")
@@ -725,6 +780,29 @@ If all failed, try to complete the common part with `company-complete-common'"
   ;; displays current java version
   (message (concat "Java HOME: " (getenv "JAVA_HOME"))))
 
+(use-package sbt-mode)
+
+(use-package scala-mode)
+
+(use-package lsp-metals
+  :ensure t
+  :custom
+  ;; You might set metals server options via -J arguments. This might not always work, for instance when
+  ;; metals is installed using nix. In this case you can use JAVA_TOOL_OPTIONS environment variable.
+  (lsp-metals-server-args '(;; Metals claims to support range formatting by default but it supports range
+                            ;; formatting of multiline strings only. You might want to disable it so that
+                            ;; emacs can use indentation provided by scala-mode.
+                            "-J-Dmetals.allow-multiline-string-formatting=off"
+                            ;; Enable unicode icons. But be warned that emacs might not render unicode
+                            ;; correctly in all cases.
+                            "-J-Dmetals.icons=unicode"))
+  ;; In case you want semantic highlighting. This also has to be enabled in lsp-mode using
+  ;; `lsp-semantic-tokens-enable' variable. Also you might want to disable highlighting of modifiers
+  ;; setting `lsp-semantic-tokens-apply-modifiers' to `nil' because metals sends `abstract' modifier
+  ;; which is mapped to `keyword' face.
+  (lsp-metals-enable-semantic-highlighting t)
+  :hook (scala-mode . lsp))
+
 ;; Shell
 (setq-default sh-basic-offset 2)
 (setq-default sh-indentation 2)
@@ -751,6 +829,19 @@ If all failed, try to complete the common part with `company-complete-common'"
 (unless (boundp 'server-process)
   (server-start))
 
+(use-package dockerfile-mode)
+
+
+(use-package helpful
+  ;; Note that the built-in `describe-function' includes both functions
+  ;; and macros. `helpful-function' is functions only, so we provide
+  ;; `helpful-callable' as a drop-in replacement.
+  :config
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+  (global-set-key (kbd "C-h v") #'helpful-variable)
+  (global-set-key (kbd "C-h k") #'helpful-key)
+  (global-set-key (kbd "C-h x") #'helpful-command))
+
 (require 'init-magit)
 
 ;; Custom
@@ -776,6 +867,7 @@ If all failed, try to complete the common part with `company-complete-common'"
  '(font-lock-comment-face ((t (:foreground "#828282"))))
  '(lsp-ui-doc-background ((t (:background nil))))
  '(lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic))))))
+
 
 (provide 'init)
 ;;; init.el ends here.

@@ -33,5 +33,5 @@ function parse_dev_path {
 function github::clone_repo {
   readonly dev_path=$(parse_dev_path $1)
   readonly git_path="git@github.com:$dev_path"
-  git clone $git_path "/Users/valentinmouret/Developer/$dev_path"
+  git clone $git_path "/Users/valentin/Developer/$dev_path"
 }

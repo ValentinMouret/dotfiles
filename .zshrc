@@ -52,3 +52,13 @@ alias grep=rg
 eval "$(atuin init zsh)"
 
 export EDITOR="emacs"
+
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+export PUPPETEER_EXECUTABLE_PATH=`which chromium`
+export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+
+[ -f "/Users/valentin/.ghcup/env" ] && source "/Users/valentin/.ghcup/env" # ghcup-env

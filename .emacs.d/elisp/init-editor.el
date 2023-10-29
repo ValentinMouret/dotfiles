@@ -82,7 +82,7 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "JetBrains Mono 12" nil t)
+(set-frame-font "Iosevka 12" nil t)
 
 (require 'uniquify)
 
@@ -97,11 +97,17 @@
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 
+(defun reset-buffer-width ()
+  "Reset the width of single buffers based on the screen resolution."
+  (interactive)
+  (let ((ratio (if (> (display-pixel-width) 3000) 0.5 0.8)))
+    (setq olivetti-body-width ratio)))
+
 ;; This package makes the buffer centered when there is only one.
 ;; As soon as more buffers are opened, it will be disabled.
 (use-package olivetti
   :init
-  (setq olivetti-body-width 0.5)        ; adjust to taste
+    (reset-buffer-width) ; adjust to taste
   (defun adjust-window-width ()
     (if (one-window-p)
         (olivetti-mode)
@@ -109,12 +115,16 @@
   :config
   (add-hook 'window-configuration-change-hook 'adjust-window-width))
 
-(use-package writeroom-mode
-  :bind
-  ("C-c w" . writeroom-mode))
-
 (use-package golden-ratio)
 (golden-ratio-mode 1)
+
+(setq split-height-threshold nil)  ; Disable horizontal splitting
+(setq split-width-threshold 0)     ; Enable vertical splitting regardless of window width
+
+;; Optional: Make 'split-window-sensibly the preferred function
+(setq split-window-preferred-function 'split-window-sensibly)
+
+(global-auto-revert-mode 1)
 
 (provide 'init-editor)
 

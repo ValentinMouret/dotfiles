@@ -18,6 +18,7 @@
   (setq auth-sources '("~/.authinfo"))
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
+  (magit-fetch-arguments '("--prune"))
   :config
   (defun magit-log-follow-current-file ()
     "A wrapper around `magit-log-buffer-file' with `--follow' argument."
