@@ -29,4 +29,10 @@ function copy::zsh () {
   cp $HOME/.zsh/* $DOTFILES_PATH/.zsh
 }
 
-copy::emacs && copy::zsh
+function copy::helix () {
+  cp $HOME/.config/helix/config.toml $DOTFILES_PATH/.config/helix/config.toml
+  cp $HOME/.config/helix/languages.toml $DOTFILES_PATH/.config/helix/languages.toml
+}
+
+# copy::emacs && copy::zsh && copy::helix
+copy::helix

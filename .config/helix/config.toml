@@ -1,0 +1,9 @@
+theme = "nord"
+
+[keys.normal]
+c = "move_char_left"
+t = "move_visual_line_down"
+s = "move_visual_line_up"
+r = "move_char_right"
+"’" = "select_regex"
+h = "change_selection"
