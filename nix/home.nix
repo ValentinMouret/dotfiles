@@ -27,5 +27,27 @@
     };
 
     zsh.enable = true;
+
+
+    git = {
+      enable = true;
+      userName = "Valentin Mouret";
+      userEmail = "valentin.mouret@hey.com";
+      extraConfig = {
+        diff = {
+          tool = "delta";
+        };
+        pull = {
+          rebase = true;
+        };
+        rerere = {
+          enabled = true;
+        };
+      };
+    };
+
+    starship = {
+        enable = true;
+      };
   };
 }
