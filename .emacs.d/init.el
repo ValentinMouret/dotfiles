@@ -141,6 +141,9 @@
 	 ("C-x b" . counsel-ibuffer)
          ("C-M-j" . counsel-switch-buffer)
 	 ("C-x C-f" . counsel-find-file)
+         ("C-h f" . counsel-describe-function)
+         ("C-h l" . counsel-find-library)
+         ("C-h v" . counsel-describe-variable)
 	 :map minibuffer-local-map
 	 ("C-r" . 'counsel-mini-buffer-history))
   :config
@@ -178,8 +181,6 @@
   :init (setq evil-want-keybinding nil)
   :bind
   ("M-." . xref-find-definitions))
-
-(evil-mode 1)
 
 (use-package evil-collection
   :after evil
@@ -222,8 +223,6 @@
   (evil-define-key 'normal neotree-mode-map (kbd "p") 'neotree-previous-line)
   (evil-define-key 'normal neotree-mode-map (kbd "A") 'neotree-stretch-toggle)
   (evil-define-key 'normal neotree-mode-map (kbd "H") 'neotree-hidden-file-toggle))
-
-(evil-mode 0)
 
 (use-package ivy-rich
   :init
@@ -273,7 +272,12 @@
 ;; Run: M-x all-the-icons-install-font
 (use-package all-the-icons)
 
+(use-package nerd-icons
+  :config (nerd-icons-install-fonts 1))
+
 (use-package doom-modeline
+  :after nerd-icons
+  :init (doom-modeline-mode 1)
   :custom
   ;; Don't compact font caches during GC. Windows Laggy Issue
   (inhibit-compacting-font-caches t)
@@ -281,8 +285,7 @@
   (doom-modeline-icon t)
   (doom-modeline-major-mode-color-icon t)
   (doom-modeline-height 15)
-  :config
-  (doom-modeline-mode))
+  )
 
 ;; (hidden-mode-line-mode 1)
 
