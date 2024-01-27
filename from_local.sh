@@ -39,7 +39,11 @@ function copy::helix () {
   cp $HOME/.config/helix/languages.toml $DOTFILES_PATH/.config/helix/languages.toml
 }
 
-copy_nix && copy::nix
-copy_zsh && copy::zsh
-copy_emacs && copy::emacs
-copy_helix && copy::helix
+function copy::nix () {
+  cp -r $HOME/.config/nix-darwin/ $DOTFILES_PATH/nix
+}
+
+if [[ $copy_nix -eq 1 ]] copy::nix
+if [[ $copy_zsh -eq 1 ]] copy::zsh
+if [[ $copy_emacs -eq 1 ]] copy::emacs
+if [[ $copy_helix -eq 1 ]] copy::helix
