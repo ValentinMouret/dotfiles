@@ -4,6 +4,11 @@
 
 set -euo pipefail
 
+readonly copy_emacs=1
+readonly copy_helix=1
+readonly copy_zsh=1
+readonly copy_nix=1
+
 DEV_PATH=${DEV_PATH:-$HOME/Developer/valentinmouret}
 DOTFILES_PATH=$DEV_PATH/dotfiles
 
@@ -34,5 +39,7 @@ function copy::helix () {
   cp $HOME/.config/helix/languages.toml $DOTFILES_PATH/.config/helix/languages.toml
 }
 
-# copy::emacs && copy::zsh && copy::helix
-copy::helix
+copy_nix && copy::nix
+copy_zsh && copy::zsh
+copy_emacs && copy::emacs
+copy_helix && copy::helix
