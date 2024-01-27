@@ -34,8 +34,24 @@
       userName = "Valentin Mouret";
       userEmail = "valentin.mouret@hey.com";
       extraConfig = {
+        core = {
+          pager = "delta";
+        };
         diff = {
           tool = "delta";
+          navigate = true;
+          light = false;
+          colorMoved = "default";
+        };
+        delta = {
+          side-by-side = true;
+          line-numbers = true;
+        };
+        interactive = {
+          diffFilter = "delta --color-only";
+        };
+        merge = {
+          conflictstyle = "diff3";
         };
         pull = {
           rebase = true;
