@@ -49,9 +49,8 @@ alias ll="exa -l"
 alias ls=exa
 alias cat=bat
 alias grep=rg
-eval "$(atuin init zsh)"
 
-export EDITOR="emacs"
+export EDITOR="hx"
 
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH=`which chromium`

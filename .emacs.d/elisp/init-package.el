@@ -14,7 +14,6 @@
 ;;
 ;;; Code:
 
-;; MelpaPackages
 ;; Select the folder to store packages
 ;; Comment / Uncomment to use desired sites
 (setq package-user-dir (expand-file-name "elpa" user-emacs-directory)
@@ -23,7 +22,6 @@
         ("melpa" . "https://melpa.org/packages/")
         ("cselpa" . "https://elpa.thecybershadow.net/packages/")
         ))
-;; -MelpaPackages
 
 ;; ConfigurePackageManager
 (unless (bound-and-true-p package--initialized)

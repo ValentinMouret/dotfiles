@@ -1,5 +1,8 @@
 theme = "nord"
 
+[editor.file-picker]
+hidden = false
+
 [keys.normal]
 c = "move_char_left"
 t = "move_visual_line_down"

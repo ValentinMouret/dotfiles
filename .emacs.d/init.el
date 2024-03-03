@@ -285,7 +285,8 @@
   (doom-modeline-icon t)
   (doom-modeline-major-mode-color-icon t)
   (doom-modeline-height 15)
-  )
+  :config
+  (doom-modeline-mode))
 
 ;; (hidden-mode-line-mode 1)
 
@@ -470,6 +471,10 @@
       (flycheck-vale-setup)
       (flycheck-add-mode 'vale 'latex-mode))))
 
+(use-package flymake-hadolint
+  :hook
+  (dockerfile-mode-hook . flymake-mode))
+
 ;; SQL
 
 
@@ -496,7 +501,8 @@
 ;; Haskell
 (use-package haskell-mode)
 
-(use-package lsp-haskell)
+(use-package lsp-haskell
+  :hook (haskell-mode))
 
 
 ;; Lisp
@@ -557,7 +563,7 @@
   :ensure nil
   :after flycheck
   :mode "\\.py\\'"
-  :hook (subword-mode)
+  :hook (python-mode . subword-mode)
   :custom
   (python-indent-offset 4)
   (flycheck-python-pycompile-executable "python3")

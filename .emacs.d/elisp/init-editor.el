@@ -74,7 +74,6 @@
 (setq base16-highlight-mode-line 'false)
 (setq base16-theme-256-color-source "colors")
 (load-theme 'base16-nord t)
-;; (load-theme 'base16-default-light t)
 
 ;; No need for ~ files when editing
 (setq create-lockfiles nil)
