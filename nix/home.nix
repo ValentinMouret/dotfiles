@@ -28,6 +28,9 @@
 
     zsh.enable = true;
 
+    nushell = {
+      enable = true;
+    };
 
     git = {
       enable = true;
