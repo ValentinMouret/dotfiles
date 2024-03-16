@@ -30,9 +30,10 @@
   (* n (power 10 9)))
 
 ;; Increase the garbage collection threshold to speed up the initilization.
-(setq gc-cons-threshold (gigabytes 3))
+(setq gc-cons-threshold (gigabytes 1))
 
-(defvar better-gc-cons-threshold most-positive-fixnum)
+;; (defvar better-gc-cons-threshold most-positive-fixnum)
+(defvar better-gc-cons-threshold gc-cons-threshold)
 
 ;; AutoGC
 (add-hook 'emacs-startup-hook

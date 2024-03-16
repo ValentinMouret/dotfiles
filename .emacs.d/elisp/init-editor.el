@@ -70,10 +70,14 @@
       kept-old-versions 5    ;; and how many of the old
       )
 
-(use-package base16-theme)
-(setq base16-highlight-mode-line 'false)
-(setq base16-theme-256-color-source "colors")
-(load-theme 'base16-nord t)
+; (use-package base16-theme)
+; (setq base16-highlight-mode-line 'false)
+; (setq base16-theme-256-color-source "colors")
+; (load-theme 'base16-nord t)
+
+(use-package nord-theme
+  :config
+  (load-theme 'nord t))
 
 ;; No need for ~ files when editing
 (setq create-lockfiles nil)
@@ -81,7 +85,7 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "Iosevka 12" nil t)
+(set-frame-font "Iosevka 14" nil t)
 
 (require 'uniquify)
 

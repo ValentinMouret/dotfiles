@@ -39,6 +39,8 @@
 ;; Initialize the package archives:
 (require 'package)
 
+(use-package sqlite3)
+
 (use-package org
   :bind
   (("C-c a" . org-agenda))
@@ -68,9 +70,9 @@
 (use-package org-roam
   :init
   (setq org-roam-v2-ack t)
-  
+
   :custom
-  ((org-roam-directory "~/Notes")
+  ((org-roam-directory (file-truename "~/Documents/Notes"))
    (org-roam-dailies-directory "Journal")
    (org-roam-dailies-capture-templates '(("d" "default" entry
                                           "* %?"
@@ -82,6 +84,7 @@
    ("C-c n f" . org-roam-node-find)
    ("C-c n i" . org-roam-node-insert)
    ("C-c n d" . org-roam-dailies-goto-today)))
+(org-roam-db-autosync-mode)
 
 (use-package rg)
 
@@ -402,19 +405,6 @@
  :bind
  ("C-t" . set-rectangular-region-anchor)
  ("C-z" . mc/mark-next-like-this))
-
-(use-package dap-mode
-  :diminish
-  :bind
-  (:map dap-mode-map
-        (("<f12>" . dap-debug)
-         ("<f8>" . dap-continue)
-         ("<f9>" . dap-next)
-         ("<M-f11>" . dap-step-in)
-         ("C-M-<f11>" . dap-step-out)
-         ("<f7>" . dap-breakpoint-toggle))))
-
-;; (use-package lsp-treemacs)
 
 (use-package neotree
   :bind
@@ -821,10 +811,10 @@ If all failed, try to complete the common part with `company-complete-common'"
   :straight (:host github
              :repo "zerolfx/copilot.el"
              :files ("dist" "*.el"))
-  :hook (prog-mode . copilot-mode)
-  :config (setq copilot-idle-delay 0.01)
-  :bind (("C-c ." . copilot-accept-completion)
-         ("C-c x" . copilot-complete)))
+  :hook     (prog-mode . copilot-mode)
+  :config   (setq copilot-idle-delay 0.01)
+  :bind     (("C-c ." . copilot-accept-completion)
+             ("C-c x" . copilot-complete)))
 
 (use-package flymake-shellcheck
   :commands flymake-shellcheck-load
@@ -840,6 +830,10 @@ If all failed, try to complete the common part with `company-complete-common'"
 
 (use-package dockerfile-mode)
 
+(use-package undo-tree
+  :diminish
+  :config
+  (global-undo-tree-mode))
 
 (use-package helpful
   ;; Note that the built-in `describe-function' includes both functions
