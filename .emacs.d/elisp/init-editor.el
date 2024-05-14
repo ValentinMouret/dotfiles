@@ -70,11 +70,6 @@
       kept-old-versions 5    ;; and how many of the old
       )
 
-; (use-package base16-theme)
-; (setq base16-highlight-mode-line 'false)
-; (setq base16-theme-256-color-source "colors")
-; (load-theme 'base16-nord t)
-
 (use-package nord-theme
   :config
   (load-theme 'nord t))
@@ -85,7 +80,12 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "Iosevka 14" nil t)
+(set-frame-font "Iosevka 12" nil t)
+
+(defun set-font-size (size)
+  "Set the font size to SIZE."
+  (interactive "nFont size: ")
+  (set-frame-font (format "Iosevka %d" size) nil t))
 
 (require 'uniquify)
 
@@ -100,22 +100,26 @@
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 
+(defun -reset-buffer-width ()
+  (let ((ratio (if (> (display-pixel-width) 3000) 0.5 0.8)))
+    (setq olivetti-body-width ratio)))
+
 (defun reset-buffer-width ()
   "Reset the width of single buffers based on the screen resolution."
   (interactive)
-  (let ((ratio (if (> (display-pixel-width) 3000) 0.5 0.8)))
-    (setq olivetti-body-width ratio)))
+  (-reset-buffer-width))
 
 ;; This package makes the buffer centered when there is only one.
 ;; As soon as more buffers are opened, it will be disabled.
 (use-package olivetti
   :init
-    (reset-buffer-width) ; adjust to taste
+  (reset-buffer-width)                  ; adjust to taste
   (defun adjust-window-width ()
     (if (one-window-p)
         (olivetti-mode)
       (olivetti-mode -1)))
   :config
+  (add-hook 'window-configuration-change-hook '-reset-buffer-width)
   (add-hook 'window-configuration-change-hook 'adjust-window-width))
 
 (use-package golden-ratio)

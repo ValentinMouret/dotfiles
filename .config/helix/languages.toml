@@ -1,6 +1,7 @@
 [[language]]
 name = "python"
 language-servers = [ "pylsp", "pyright", "ruff" ]
+roots = ["pyproject.toml", "setup.py", "Poetry.lock", "."]
 auto-format = true
 
 [language-server.pyright.config.python.analysis]
@@ -16,13 +17,6 @@ args = ["--ignore", "E501"]
 command = "black"
 args = ["--line-length", "88", "--quiet", "-"]
 
-# [language-servers.markdown]
-# command = "markdown-oxide" 
-
-# [[language]]
-# name = "markdown"
-# language-servers = [ "markdown" ]
-
 [[languages]]
 name = "go"
 auto-format = true
@@ -36,3 +30,7 @@ args = ["up", "--method", "stdio"]
 name = "sql"
 language-servers = [ "sql-language-server" ]
 
+[[language]]
+name = "scala"
+auto-format = true
+# formatter = { command = "scalafmt" }

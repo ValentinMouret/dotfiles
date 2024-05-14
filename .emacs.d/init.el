@@ -48,6 +48,7 @@
   (setq org-directory "~/Documents")
   (setq org-agenda-files '("~/Documents/interop.org"
                            "~/Documents/birthdays.org"
+                           "~/org/fitness.org"
                            "~/Documents/habits.org"
                            "~/Documents/perso.org"
                            "~/Notes"))
@@ -58,13 +59,17 @@
   (org-toggle-pretty-entities)
 
   (setq org-todo-keywords
-        '((sequence "BACKLOG(b)" "TODO(t)" "ACTIVE(a)" "|" "DONE(d!)" ;; The pipe `|` signifies that entries to the right are «completed» states.
+        '((sequence "BACKLOG(b)" "TODO(t)" "ACTIVE(a)" "|" "DONE(d!)" "CANCELED" ;; The pipe `|` signifies that entries to the right are «completed» states.
                     )))
+  (setq org-todo-keyword-faces
+        '(("BACKLOG" . "gray")
+          ("CANCELED" . "red")))
 
   (require 'org-habit)
   (add-to-list 'org-modules 'org-habit)
-
-  (setq org-habit-graph-column 60))
+  (setq org-habit-graph-column 60)
+  ;
+  )
 
 
 (use-package org-roam
@@ -318,8 +323,14 @@
   :config (counsel-projectile-mode))
 
 (use-package markdown-mode
-  :mode ("README\\.md\\'" . gfm-mode)
-  :init (setq markdown-command "multimarkdown"))
+  :mode
+  ("README\\.md\\'" . gfm-mode)
+  :init
+  (setq markdown-command "multimarkdown")
+  :config
+  (setq markdown-fontify-code-blocks-natively t)
+  (setq markdown-enable-math t)
+  )
 
 (use-package rust-mode
   :mode "\\.rs\\'"
@@ -519,7 +530,8 @@
 (use-package clojure-mode
   :config
   (require 'flycheck-clj-kondo)
-  (setq clojure-align-forms-automatically t))
+  (setq clojure-align-forms-automatically t)
+  )
 
 (use-package cider
   :commands (cider cider-connect cider-jack-in)
@@ -568,6 +580,7 @@
 (use-package lsp-pyright
   :config
   (put 'lsp-pyright-python-executable-cmd 'safe-local-variable #'stringp)
+  (lsp-register-custom-settings '(("pyls.plugins.pyls_mypy.enabled" t t)))
   :hook
   (
    (python-mode . (lambda ()
@@ -604,7 +617,7 @@
 (use-package go-mode
   :hook
   (before-save-hook . gofmt-before-save)
-  (subword-mode))
+  (go-mode . subword-mode))
 
 (use-package nix-mode)
 
@@ -616,18 +629,18 @@
   :config
   (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode)))
 
-(use-package prettier-js
-  :config
-  (setq prettier-js-args '(
-                           "--trailing-comma" "all"
-                           "--single-quote" "true"
-			   "--semi" "false"
-                           "--print-width" "100"
-                           ))
-  :hook
-  (((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
-   (typescript-mode . prettier-js-mode)
-   (js-mode-hook . subword-mode)))
+;; (use-package prettier-js
+;;   :config
+;;   (setq prettier-js-args '(
+;;                            "--trailing-comma" "all"
+;;                            "--single-quote" "true"
+;; 			   "--semi" "false"
+;;                            "--print-width" "100"
+;;                            ))
+;;   :hook
+;;   (((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
+;;    (typescript-mode . prettier-js-mode)
+;;    (js-mode-hook . subword-mode)))
 
 ;; (straight-use-package '(tsx-mode :type git :host github :repo "orzechowskid/tsx-mode.el"))
 
@@ -686,9 +699,8 @@ If all failed, try to complete the common part with `company-complete-common'"
 
 (use-package typescript-mode
   :hook
-  ((typescript-mode . company-mode)
-   (typescript-subword-mode)
-   (typescript-mode . prettier-js-mode)))
+  (typescript-mode . company-mode)
+  (typescript-mode . subword-mode))
 
 ;; (use-package tide
 ;;   :after (typescript-mode company flycheck)
@@ -721,7 +733,7 @@ If all failed, try to complete the common part with `company-complete-common'"
   :init
   (use-package request :defer t)
   :hook
-  (subword-mode)
+  (java-mode . subword-mode)
   :custom
   (lsp-java-server-install-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/server/"))
   (lsp-java-workspace-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/workspace/")))
@@ -833,7 +845,8 @@ If all failed, try to complete the common part with `company-complete-common'"
 (use-package undo-tree
   :diminish
   :config
-  (global-undo-tree-mode))
+  (global-undo-tree-mode)
+  (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
 
 (use-package helpful
   ;; Note that the built-in `describe-function' includes both functions
@@ -845,32 +858,9 @@ If all failed, try to complete the common part with `company-complete-common'"
   (global-set-key (kbd "C-h k") #'helpful-key)
   (global-set-key (kbd "C-h x") #'helpful-command))
 
+(use-package visual-regexp)
+
 (require 'init-magit)
-
-;; Custom
-;; This area is set by Custom. Don’t touch it.
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(company-show-quick-access t nil nil "Customized with use-package company")
- '(custom-safe-themes
-   '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
- '(package-selected-packages
-   '(nix-mode flyspell-correct-ivy crux diminish amx flycheck-popup-tip flycheck-posframe json-mode web-mode flycheck-rust lsp-java java-lsp rust-mode haskell-mode adoc adoc-mode csv-mode lsp-dart evil-collection treemacs-evil evil-mode slack oauth2 dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(css-selector ((t (:inherit default :foreground "#66CCFF"))))
- '(flycheck-posframe-face ((t (:foreground "#a1b56c"))))
- '(flycheck-posframe-info-face ((t (:foreground "#a1b56c"))))
- '(font-lock-comment-face ((t (:foreground "#828282"))))
- '(lsp-ui-doc-background ((t (:background nil))))
- '(lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic))))))
-
 
 (provide 'init)
 ;;; init.el ends here.
