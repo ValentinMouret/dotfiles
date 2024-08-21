@@ -1,7 +1,8 @@
 {
-  description = "Example Darwin system flake";
+  description = "Valentin’s nix darwin flake";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
     nix-darwin.url = "github:LnL7/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -10,150 +11,218 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, ... }:
-  let
-    configuration = { pkgs, ... }: {
-      # List packages installed in system profile. To search by name, run:
-      # $ nix-env -qaP | grep wget
-      environment.systemPackages = with pkgs;
-      [
-        delta # replacement for diff
-        babashka
-        clojure
-        direnv
-        emacs
-        fd
-        fzf
-        git
-        eza
-        nodejs
-        ripgrep
-      ];
-      environment.shellAliases = {
-        ls = "eza";
-        ll = "ls -l";
-        grep = "rg";
+  outputs = { self, nix-darwin, home-manager, ... }:
+    let
+      configuration = { pkgs, ... }: {
+        # List packages installed in system profile. To search by name, run:
+        # $ nix-env -qaP | grep wget
+        environment.systemPackages = with pkgs;
+          [
+            babashka
+            bat
+            bottom
+            cargo
+            clojure
+            delve
+            deno
+            devenv
+            direnv
+            # elmPackages."elm"
+            eza
+            fd
+            fzf
+            git
+            gitAndTools.gh
+            go
+            gopls
+            gotools
+            helix
+            ispell
+            iosevka
+            jq
+            metals
+            multimarkdown
+            nerdfonts
+            nil # Nix lsp
+            nixpkgs-fmt
+            # nodePackages."bash-language-server"
+            nodePackages."dockerfile-language-server-nodejs"
+            nodePackages."graphql-language-service-cli"
+            nodePackages."typescript"
+            nodePackages."typescript-language-server"
+            nodePackages."vscode-langservers-extracted"
+            nodePackages.pnpm
+            nodejs
+            openjdk22
+            poetry
+            pyenv
+            # lispPackages.quicklisp
+            rage
+            rust-analyzer
+            rustc
+            ripgrep
+            s3cmd
+            silver-searcher
+            # sbcl
+            sbt
+            scala
+            # starship
+            terraform-ls
+            yarn
+            zig
+          ];
+        environment.shellAliases = {
+          ls = "eza";
+          ll = "ls -l";
+          grep = "rg";
+          cat = "bat";
 
-        gs = "git status";
-        ga = "git add";
-        gc = "git commit";
-        gd = "git diff";
-        gl = "git log";
+          gs = "git status";
+          ga = "git add";
+          gc = "git commit";
+          gd = "git diff";
+          gl = "git log";
+          gp = "git push";
+        };
+        environment.variables = {
+          LANG = "en_GB.UTF-8";
+          LC_ALL = "en_GB.UTF-8";
+          EDITOR = "emacs";
+          BAT_THEME = "Nord";
+          # RUST_SRC_PATH = "${pkgs.latest.rustChannels.stable.rust-src}/lib/rustlib/src/rust/library/";
+        };
+        environment.pathsToLink = [ "/share/zsh" ];
+
+        # fonts.fontDir.enable = true;
+        fonts.packages = with pkgs; [
+          iosevka
+        ];
+
+        # Auto upgrade nix package and the daemon service.
+        services.nix-daemon.enable = true;
+        # nix.package = pkgs.nix;
+
+        # Necessary for using flakes on this system.
+        nix.settings.experimental-features = "nix-command flakes";
+
+        # Create /etc/zshrc that loads the nix-darwin environment.
+        programs.zsh = {
+          enable = true; # default shell on catalina
+          enableFzfCompletion = true;
+          enableFzfGit = true;
+          enableFzfHistory = true;
+          enableSyntaxHighlighting = true;
+        };
+
+        # programs.java.enable = true;
+
+        programs.fish = {
+          enable = true;
+        };
+
+        services.tailscale = {
+          enable = true;
+        };
+
+        services.postgresql = {
+          enable = true;
+        };
+
+        # Set Git commit hash for darwin-version.
+        system.configurationRevision = self.rev or self.dirtyRev or null;
+
+        # Used for backwards compatibility, please read the changelog before changing.
+        # $ darwin-rebuild changelog
+        system.stateVersion = 4;
+
+        system.defaults.".GlobalPreferences"."com.apple.mouse.scaling" = 10.0;
+        system.defaults.NSGlobalDomain.AppleInterfaceStyleSwitchesAutomatically = true;
+        system.defaults.NSGlobalDomain.InitialKeyRepeat = null;
+        system.defaults.NSGlobalDomain.KeyRepeat = null;
+
+        system.defaults.NSGlobalDomain.NSAutomaticCapitalizationEnabled = false;
+        system.defaults.NSGlobalDomain.NSAutomaticSpellingCorrectionEnabled = false;
+        system.defaults.NSGlobalDomain."com.apple.mouse.tapBehavior" = 1;
+        system.defaults.NSGlobalDomain."com.apple.trackpad.scaling" = 100.0;
+
+        system.defaults.dock.autohide = true;
+        system.defaults.trackpad.Clicking = true;
+        system.keyboard.enableKeyMapping = true;
+        system.keyboard.remapCapsLockToControl = true;
+
+        # The platform the configuration will be used on.
+        nixpkgs.hostPlatform = "aarch64-darwin";
+
+        # Necessary for home-manager to work
+        users.users.valentinmouret.home = "/Users/valentinmouret";
+
+        homebrew = {
+          onActivation = {
+            autoUpdate = true;
+            upgrade = true;
+            cleanup = "uninstall";
+          };
+          enable = true;
+          brews = [
+            {
+              name = "postgresql@14";
+              restart_service = true;
+              link = true;
+            }
+            "emacs-plus"
+          ];
+          taps = [
+            "d12frosted/emacs-plus"
+            "homebrew/services"
+          ];
+          casks = [
+            "cyberduck"
+            "discord"
+            "dozer"
+            "figma"
+            "firefox"
+            "google-chrome"
+            "hey"
+            "iterm2"
+            "linear-linear"
+            "notion"
+            "orbstack"
+            "postico"
+            "rectangle"
+            "roam-research"
+            "signal"
+            "slack"
+            "vlc"
+            "visual-studio-code"
+            "wezterm"
+            "whatsapp"
+          ];
+        };
+
+        networking = {
+          knownNetworkServices = [ "Wi-Fi" ];
+          dns = [
+            "1.1.1.1"
+          ];
+        };
       };
-      environment.variables = {
-        EDITOR = "emacs";
-      };
-
-      fonts.fontDir.enable = true;
-      fonts.fonts = with pkgs; [
-        iosevka
-      ];
-
-      # Auto upgrade nix package and the daemon service.
-      services.nix-daemon.enable = true;
-      # nix.package = pkgs.nix;
-
-      # Necessary for using flakes on this system.
-      nix.settings.experimental-features = "nix-command flakes";
-
-      # Create /etc/zshrc that loads the nix-darwin environment.
-      programs.zsh = {
-        enable = true;  # default shell on catalina
-        enableFzfCompletion = true;
-        enableFzfGit = true;
-        enableFzfHistory = true;
-        enableSyntaxHighlighting = true;
-      };
-
-      programs.fish = {
-        enable = true;
-      };
-
-      services.postgresql = {
-        enable = true;
-        # ensureUsers = [
-        #   {
-        #     name = "postgres";
-        #     ensurePermissions = {
-        #       "ALL TABLES IN SCHEMA public" = "ALL PRIVILEGES";
-        #     };
-        #   }
-        #   {
-        #     name = "valentinmouret";
-        #     ensurePermissions = {
-        #       "ALL TABLES IN SCHEMA public" = "ALL PRIVILEGES";
-        #     };
-        #   }
-        # ];
-      };
-      # programs.fish.enable = true;
-
-      # Set Git commit hash for darwin-version.
-      system.configurationRevision = self.rev or self.dirtyRev or null;
-
-      # Used for backwards compatibility, please read the changelog before changing.
-      # $ darwin-rebuild changelog
-      system.stateVersion = 4;
-
-      system.defaults.".GlobalPreferences"."com.apple.mouse.scaling" = 1.0;
-      system.defaults.NSGlobalDomain.AppleInterfaceStyleSwitchesAutomatically = true;
-      system.defaults.NSGlobalDomain.InitialKeyRepeat = 0;
-      system.defaults.NSGlobalDomain.NSAutomaticCapitalizationEnabled = false;
-      system.defaults.NSGlobalDomain.NSAutomaticSpellingCorrectionEnabled = false;
-      system.defaults.NSGlobalDomain."com.apple.mouse.tapBehavior" = 1;
-      system.defaults.NSGlobalDomain."com.apple.trackpad.scaling" = 3.0;
-      system.defaults.dock.autohide = true;
-      system.defaults.trackpad.Clicking = true;
-      system.keyboard.enableKeyMapping = true;
-      system.keyboard.remapCapsLockToControl = true;
-      
-      # The platform the configuration will be used on.
-      nixpkgs.hostPlatform = "aarch64-darwin";
-
-      # Necessary for home-manager to work
-      users.users.valentinmouret.home = "/Users/valentinmouret";
-
-      homebrew = {
-        enable = true;
-        casks = [
-          "iterm2"
-          "cyberduck"
-          "dozer"
-          "google-chrome"
-          "hey"
-          "logseq"
-          "postico"
-          "signal"
-          "slack"
-          "vlc"
-          "whatsapp"
+    in
+    {
+      # Build darwin flake using:
+      # $ darwin-rebuild build --flake .#Valentins-MacBook-Pro
+      darwinConfigurations."Valentins-MacBook-Pro" = nix-darwin.lib.darwinSystem {
+        modules = [
+          configuration
+          home-manager.darwinModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.valentinmouret = import ./home.nix;
+          }
         ];
       };
 
-      networking = {
-        knownNetworkServices = ["Wi-Fi"];
-        dns = [
-          "1.1.1.1"
-        ];
-      };
+      # Expose the package set, including overlays, for convenience.
+      darwinPackages = self.darwinConfigurations."Valentins-MacBook-Pro".pkgs;
     };
-  in
-  {
-    # Build darwin flake using:
-    # $ darwin-rebuild build --flake .#Valentins-MacBook-Pro
-    darwinConfigurations."Valentins-MacBook-Pro" = nix-darwin.lib.darwinSystem {
-      modules = [
-        configuration
-        home-manager.darwinModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.users.valentinmouret = import ./home.nix;
-        }
-      ];
-    };
-
-    # Expose the package set, including overlays, for convenience.
-    darwinPackages = self.darwinConfigurations."Valentins-MacBook-Pro".pkgs;
-  };
 }
