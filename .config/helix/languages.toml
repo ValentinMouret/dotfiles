@@ -1,4 +1,8 @@
 [[language]]
+name = "typescript"
+auto-format = true
+
+[[language]]
 name = "python"
 language-servers = [ "pylsp", "pyright", "ruff" ]
 auto-format = true
@@ -16,13 +20,6 @@ args = ["--ignore", "E501"]
 command = "black"
 args = ["--line-length", "88", "--quiet", "-"]
 
-# [language-servers.markdown]
-# command = "markdown-oxide" 
-
-# [[language]]
-# name = "markdown"
-# language-servers = [ "markdown" ]
-
 [[languages]]
 name = "go"
 auto-format = true
@@ -36,3 +33,21 @@ args = ["up", "--method", "stdio"]
 name = "sql"
 language-servers = [ "sql-language-server" ]
 
+[[language]]
+name = "nix"
+formatter = { command = "nixpkgs-fmt" }
+
+[language-server]
+jdtls = { command = "jdtls" }
+language-server = { command = "jdtls", args = [
+  "-data", "/home/<USER>/.cache/jdtls/workspace"
+  ]}
+
+[[language]]
+name = "java"
+scope = "source.java"
+injection-regex = "java"
+file-types = ["java"]
+roots = ["pom.xml", "build.gradle", ]
+indent = { tab-width = 4, unit = "    " }
+language-servers = [ "jdtls" ]
