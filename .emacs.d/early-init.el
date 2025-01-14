@@ -8,6 +8,8 @@
 ;;; Commentary:
 ;;
 ;; This file is run before init.el.
+;; Draws inspiration from:
+;; - https://github.com/jamescherti/minimal-emacs.d
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -30,32 +32,44 @@
   (* n (power 10 9)))
 
 ;; Increase the garbage collection threshold to speed up the initilization.
-(setq gc-cons-threshold (gigabytes 1))
+(defvar better-gc-cons-threshold (megabytes 16))
 
-;; (defvar better-gc-cons-threshold most-positive-fixnum)
-(defvar better-gc-cons-threshold gc-cons-threshold)
+(setq gc-cons-threshold most-positive-fixnum)
 
-;; AutoGC
 (add-hook 'emacs-startup-hook
           (lambda ()
-            (if (boundp 'after-focus-change-function)
-                (add-function :after after-focus-change-function
-                              (lambda ()
-                                (unless (frame-focus-state)
-                                  (garbage-collect))))
-              (add-hook 'after-focus-change-function 'garbage-collect))
+            (setq gc-cons-threshold better-gc-cons-threshold)))
 
-            (defun gc-minibuffer-setup-hook ()
-              (setq gc-cons-threshold (* better-gc-cons-threshold 2)))
+;; Prefer loading newer compiled files
+(setq load-prefer-newer t)
 
-            (defun gc-minibuffer-exit-hook ()
-              (garbage-collect)
-              (setq gc-cons-threshold better-gc-cons-threshold))
+;; Increase how much is read from processes in a single chunk (default is 4kb).
+(setq read-process-output-max (kilobytes 512))  ; 512kb
 
-            (add-hook 'minibuffer-setup-hook #'gc-minibuffer-setup-hook)
-            
-            (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
-;; -AutoGC
+;; Reduce rendering/line scan work by not rendering cursors or regions in
+;; non-focused windows.
+(setq-default cursor-in-non-selected-windows nil)
+(setq highlight-nonselected-windows nil)
+
+;; Disable warnings from the legacy advice API. They aren't useful.
+(setq ad-redefinition-action 'accept)
+(setq warning-suppress-types '((lexical-binding)))
+
+;; Don't ping things that look like domain names.
+(setq ffap-machine-p-known 'reject)
+
+;; By default, Emacs "updates" its ui more often than it needs to
+(setq idle-update-delay 1.0)
+
+;; Font compacting can be very resource-intensive, especially when rendering
+;; icon fonts on Windows. This will increase memory usage.
+(setq inhibit-compacting-font-caches t)
+
+;; Allow for shorter responses: "y" for yes and "n" for no.
+(if (boundp 'use-short-answers)
+    (setq use-short-answers t)
+  (advice-add #'yes-or-no-p :override #'y-or-n-p))
+(defalias #'view-hello-file #'ignore)  ; Never show the hello file
 
 ;; LoadPath
 (defun update-to-load-path (folder)

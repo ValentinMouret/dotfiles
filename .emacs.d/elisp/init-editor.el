@@ -14,7 +14,7 @@
 
 (menu-bar-mode nil)
 
-(unless (and (display-graphic-p) (eq system-type 'darwin))
+(unless (and (display-graphic-p) *sys/mac?*)
   (push '(menu-bar-lines . 0) default-frame-alist))
 
 (push '(tool-bar-lines . 0) default-frame-alist)
@@ -85,7 +85,13 @@
 ;; Go straight to scratch buffer on startup
 (setq inhibit-startup-message t)
 
-(set-frame-font "Iosevka 14" nil t)
+(set-frame-font "JetBrains Mono 14" nil t)
+(setq font-use-system-font t)
+(setq mac-allow-anti-aliasing t)  ; For macOS
+(setq x-use-underline-position-properties nil)
+(setq x-underline-at-descent-line t)
+
+(setq tab-width 4)
 
 (require 'uniquify)
 
@@ -103,7 +109,7 @@
 (defun reset-buffer-width ()
   "Reset the width of single buffers based on the screen resolution."
   (interactive)
-  (let ((ratio (if (> (display-pixel-width) 3000) 0.5 0.8)))
+  (let ((ratio (if (> (display-pixel-width) 1500) 0.5 0.8)))
     (setq olivetti-body-width ratio)))
 
 ;; This package makes the buffer centered when there is only one.

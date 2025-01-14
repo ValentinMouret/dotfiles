@@ -20,10 +20,8 @@
       package-archives
       '(("gnu"   . "https://elpa.gnu.org/packages/")
         ("melpa" . "https://melpa.org/packages/")
-        ("cselpa" . "https://elpa.thecybershadow.net/packages/")
-        ))
+        ("cselpa" . "https://elpa.thecybershadow.net/packages/")))
 
-;; ConfigurePackageManager
 (unless (bound-and-true-p package--initialized)
   (setq package-enable-at-startup nil)          ; To prevent initializing twice
   (package-initialize))
@@ -32,9 +30,7 @@
 ;; and to nil for byte-compiled .emacs.elc.
 (eval-and-compile
   (setq use-package-verbose (not (bound-and-true-p byte-compile-current-file))))
-;; -ConfigurePackageManager
 
-;; ConfigureUsePackage
 ;; Install use-package if not installed
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -49,7 +45,6 @@
 (eval-when-compile
   (require 'use-package)
   (require 'bind-key))
-;; -ConfigureUsePackage
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -68,7 +63,6 @@
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
 
-;; AutoPackageUpdate
 (use-package auto-package-update
   :if (not (daemonp))
   :custom
@@ -78,11 +72,8 @@
   (auto-package-update-hide-results t)
   :config
   (auto-package-update-maybe))
-;; -AutoPackageUpdate
 
-;; DimPac
 (use-package diminish)
-;; -DimPac
 
 (defun recompile-source ()
   "Recompiles sources as they sometimes get stuck."

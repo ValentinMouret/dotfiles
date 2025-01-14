@@ -27,30 +27,66 @@
 ;;
 ;;; Code:
 
-(require 'early-init)
-
 (require 'init-const)
 
 (require 'init-package)
 
 (require 'init-global-config)
 
-
 ;; Initialize the package archives:
 (require 'package)
 
+(defvar minimal-emacs-gc-cons-threshold (megabytes 16)
+  "The value of `gc-cons-threshold' after Emacs startup.")
+
+(use-package auto-compile
+  :demand t
+  :custom
+  (auto-compile-check-parens nil)
+  (auto-compile-display-buffer nil)
+  :config
+  (auto-compile-on-load-mode)
+  (auto-compile-on-save-mode))
+
+;; Garbase collector magic package.
+;; Unclear if it’s of any use.
+(use-package gcmh
+  :diminish
+  :hook (after-init . gcmh-mode)
+  :custom
+  (gcmh-idle-delay 'auto)
+  (gcmh-auto-idle-delay-factor 10)
+  (gcmh-low-cons-threshold minimal-emacs-gc-cons-threshold))
+
 (use-package sqlite3)
+
+;; Provides a list API.
+;; Dependency of other packages.
+(use-package dash)
+
+(use-package vertico
+  :ensure t
+  :config
+  (setq vertico-cycle t)
+  (setq vertico-resize nil)
+  (vertico-mode 1))
+
+(use-package marginalia
+  :ensure t
+  :config
+  (marginalia-mode 1))
+
+(use-package orderless
+  :ensure t
+  :config
+  (setq completion-styles '(orderless basic)))
 
 (use-package org
   :bind
   (("C-c a" . org-agenda))
   :config
-  (setq org-directory "~/Documents")
-  (setq org-agenda-files '("~/Documents/interop.org"
-                           "~/Documents/birthdays.org"
-                           "~/Documents/habits.org"
-                           "~/Documents/perso.org"
-                           "~/Notes"))
+  (setq org-directory "~/Documents/Notes")
+  (setq org-agenda-files '("/Users/valentinmouret/Documents/Notes"))
   (setq org-agenda-start-with-log-mode t)
   (setq org-log-done 'time)
   (setq org-log-into-drawer '())
@@ -58,8 +94,8 @@
   (org-toggle-pretty-entities)
 
   (setq org-todo-keywords
-        '((sequence "BACKLOG(b)" "TODO(t)" "ACTIVE(a)" "|" "DONE(d!)" ;; The pipe `|` signifies that entries to the right are «completed» states.
-                    )))
+	;; The pipe `|` signifies that entries to the right are «completed» states.
+        '((sequence "BACKLOG(b)" "TODO(t)" "ACTIVE(a)" "|" "DONE(d!)")))
 
   (require 'org-habit)
   (add-to-list 'org-modules 'org-habit)
@@ -68,25 +104,30 @@
 
 
 (use-package org-roam
+  :after org
   :init
   (setq org-roam-v2-ack t)
+  (setq org-roam-directory (file-truename "~/Documents/Notes"))
+  (setq org-roam-dailies-directory "Journal")
 
   :custom
-  ((org-roam-directory (file-truename "~/Documents/Notes"))
-   (org-roam-dailies-directory "Journal")
-   (org-roam-dailies-capture-templates '(("d" "default" entry
-                                          "* %?"
-                                          :target (file+head "%<%Y-%m-%d>.org"
-                                                             "#+title: %<%Y-%m-%d>\n")))))
-  
+  (org-roam-dailies-capture-templates '(("d" "default" entry
+                                         "* %?"
+                                         :target (file+head "%<%Y-%m-%d>.org"
+                                                            "#+title: %<%Y-%m-%d>\n"))))
+
   :bind
   (("C-c n l" . org-roam-buffer-toggle)
    ("C-c n f" . org-roam-node-find)
    ("C-c n i" . org-roam-node-insert)
    ("C-c n d" . org-roam-dailies-goto-today)))
-(org-roam-db-autosync-mode)
 
-(use-package rg)
+;;
+(use-package rg
+  :config
+  ;; Nix installs `rg` in a place that might be hard to find?
+  ;; Setting it explicitly.
+  (setq rg-executable "/run/current-system/sw/bin/rg"))
 
 (require 'init-editor)
 
@@ -116,124 +157,27 @@
   (crux-with-region-or-point-to-eol kill-ring-save)
   (defalias 'rename-file-and-buffer #'crux-rename-file-and-buffer))
 
+(defconst flyspell-modes
+  '(latex-mode
+    markdown-mode
+    org-mode
+    outline-mode
+    text-mode))
 (use-package flyspell
-  :ensure nil
   :diminish
   :if (executable-find "aspell")
-  :hook (((text-mode outline-mode latex-mode org-mode markdown-mode) . flyspell-mode))
+  :hook (flyspell-modes . flyspell-mode)
   :custom
   (flyspell-issue-message-flag nil)
   (ispell-program-name "aspell")
   (ispell-extra-args
-   '("--sug-mode=ultra" "--lang=en_UK" "--camel-case"))
-  :config
-  (use-package flyspell-correct-ivy
-    :after ivy
-    :bind
-    (:map flyspell-mode-map
-          ([remap flyspell-correct-word-before-point] . flyspell-correct-wrapper)
-          ("C-." . flyspell-correct-wrapper))
-    :custom (flyspell-correct-interface #'flyspell-correct-ivy)))
-
-(use-package swiper)
+   '("--sug-mode=ultra" "--lang=en_UK" "--camel-case")))
 
 (use-package diminish)
 
-(use-package counsel
-  :bind (("M-x" . counsel-M-x)
-	 ("C-x b" . counsel-ibuffer)
-         ("C-M-j" . counsel-switch-buffer)
-	 ("C-x C-f" . counsel-find-file)
-         ("C-h f" . counsel-describe-function)
-         ("C-h l" . counsel-find-library)
-         ("C-h v" . counsel-describe-variable)
-	 :map minibuffer-local-map
-	 ("C-r" . 'counsel-mini-buffer-history))
-  :config
-  (setq ivy-initial-inputs-alist nil))
-
-(use-package ivy
-  :diminish
-  :init
-  (use-package amx :defer t)
-  (use-package counsel :diminish :config (counsel-mode 1))
-  (use-package swiper :defer t)
-  (ivy-mode 1)
-  :bind (("C-s" . swiper-isearch)
-         :map ivy-minibuffer-map
-         :map ivy-switch-buffer-map
-         :map ivy-reverse-i-search-map
-         ("TAB" . ivy-alt-done))
-  :custom
-  (ivy-use-virtual-buffers t)
-  (ivy-height 10)
-  (ivy-on-del-error-function nil)
-  (ivy-magic-slash-non-match-action 'ivy-magic-slash-non-match-create)
-  (ivy-count-format "【%d/%d】")
-  (ivy-wrap t)
-  :config
-  (defun counsel-goto-local-home ()
-      "Go to the $HOME of the local machine."
-      (interactive)
-    (ivy--cd "~/")))
-
-(use-package emojify)
+(use-package emojify
+  :bind ("C-x e" . emoji-insert))
 (emojify-mode t)
-
-(use-package evil
-  :init (setq evil-want-keybinding nil)
-  :bind
-  ("M-." . xref-find-definitions))
-
-(use-package evil-collection
-  :after evil
-  :config
-  (define-key evil-normal-state-map "c" nil)
-  (define-key evil-normal-state-map "C" nil)
-  (define-key evil-normal-state-map "s" nil)
-  (define-key evil-normal-state-map "S" nil)
-  (define-key evil-normal-state-map "r" nil)
-  (define-key evil-normal-state-map "R" nil)
-  (define-key evil-normal-state-map "j" nil)
-  (define-key evil-normal-state-map "J" nil)
-                                        ;je redéfinis certaines fonctions pour l’état normal
-  (define-key evil-normal-state-map "h" 'evil-change)
-  (define-key evil-normal-state-map "H" nil)
-  (define-key evil-normal-state-map "T" 'evil-join)
-  (define-key evil-normal-state-map "l" 'evil-replace)
-  (define-key evil-normal-state-map "L" nil)
-  (define-key evil-normal-state-map "k" 'evil-substitute)
-  (define-key evil-normal-state-map "K" 'evil-change-whole-line)
-                                        ;même chose mais cette fois pour l’état motion
-  (define-key evil-motion-state-map "c" 'evil-backward-char)
-  (define-key evil-motion-state-map "C" 'evil-window-top)
-  (define-key evil-motion-state-map "t" 'evil-next-line)
-  (define-key evil-motion-state-map "s" 'evil-previous-line)
-  (define-key evil-motion-state-map "r" 'evil-forward-char)
-  (define-key evil-motion-state-map "R" 'evil-window-bottom)
-  (define-key evil-motion-state-map "j" 'evil-find-char-to)
-  (define-key evil-motion-state-map "gd" 'xref-find-definitions)
-  (define-key evil-motion-state-map "." 'xref-go-back)
-  (define-key evil-motion-state-map "J" 'evil-find-char-to-backward)
-
-  ;; Bindings for neotree.
-  (evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
-  (evil-define-key 'normal neotree-mode-map (kbd "SPC") 'neotree-quick-look)
-  (evil-define-key 'normal neotree-mode-map (kbd "q") 'neotree-hide)
-  (evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
-  (evil-define-key 'normal neotree-mode-map (kbd "g") 'neotree-refresh)
-  (evil-define-key 'normal neotree-mode-map (kbd "n") 'neotree-next-line)
-  (evil-define-key 'normal neotree-mode-map (kbd "p") 'neotree-previous-line)
-  (evil-define-key 'normal neotree-mode-map (kbd "A") 'neotree-stretch-toggle)
-  (evil-define-key 'normal neotree-mode-map (kbd "H") 'neotree-hidden-file-toggle))
-
-(use-package ivy-rich
-  :init
-  (ivy-rich-mode 1))
-
-(use-package ivy-hydra)
-
-(use-package avy)
 
 (use-package dired
   :straight (:type built-in)
@@ -291,15 +235,13 @@
   :config
   (doom-modeline-mode))
 
-;; (hidden-mode-line-mode 1)
-
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package which-key
-  :init (which-key-mode)
+  :init     (which-key-mode)
   :diminish which-key-mode
-  :config (setq which-key-idle-delay 0.3))
+  :config   (setq which-key-idle-delay 0.3))
 
 (use-package projectile
   :diminish projectile-mode
@@ -313,9 +255,6 @@
   (when (file-directory-p "~/Code")
     (setq projectile-project-search-path '("~/Code")))
   (setq projectile-switch-project-action #'projectile-dired))
-
-(use-package counsel-projectile
-  :config (counsel-projectile-mode))
 
 (use-package markdown-mode
   :mode ("README\\.md\\'" . gfm-mode)
@@ -333,8 +272,9 @@
     (with-eval-after-load 'rust-mode
       (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))))
 
+(use-package nushell-mode)
+
 (use-package lsp-mode
-  :ensure t
   :custom
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   (lsp-keymap-prefix "C-c l")
@@ -342,6 +282,9 @@
   (lsp-enable-folding nil)
   (read-process-output-max (* 1024 1024))
   (lsp-eldoc-hook nil)
+  (lsp-log-io nil)
+  (lsp-keep-workspace-alive nil)
+  (lsp-enable-indentation nil) ; Test
   :bind (:map lsp-mode-map ("C-c C-f" . lsp-format-buffer))
   :hook
   ((c-mode
@@ -358,8 +301,8 @@
   :config
   ;; add paths to your local installation of project mgmt tools, like lein
   (setenv "PATH" (concat
-                   "/usr/local/bin" path-separator
-                   (getenv "PATH")))
+                  "/usr/local/bin" path-separator
+                  (getenv "PATH")))
   (defun lsp-update-server ()
     "Update LSP server."
     (interactive)
@@ -393,7 +336,7 @@
   ;; Use lsp-ui-doc-webkit only in GUI
   (when (display-graphic-p)
     (setq lsp-ui-doc-use-webkit t))
-  (setq lsp-zig-zls-executable "/Users/valentinmouret/bin/zls")
+  (setq lsp-zig-zls-executable "/run/current-system/sw/bin/zls")
   ;; WORKAROUND Hide mode-line of the lsp-ui-imenu buffer
   ;; https://github.com/emacs-lsp/lsp-ui/issues/243
   (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
@@ -402,22 +345,39 @@
   (advice-add #'keyboard-quit :before #'lsp-ui-doc-hide))
 
 (use-package multiple-cursors
- :bind
- ("C-t" . set-rectangular-region-anchor)
- ("C-z" . mc/mark-next-like-this))
-
-(use-package neotree
   :bind
-  (:map global-map
-        (("C-c C-t" . neotree-toggle))))
+  ("C-t" . set-rectangular-region-anchor)
+  ("C-z" . mc/mark-next-like-this))
+
+(use-package treemacs
+  :bind
+  ("C-c t" . treemacs))
+
+(use-package treemacs-projectile
+  :after (:all treemacs projectile))
+
+;; AI
+(use-package gptel
+  :config
+  (setq gptel-model 'claude-3-5-sonnet-20240620
+        gptel-backend (gptel-make-anthropic "Claude"
+                        :stream t
+                        :key (auth-source-pick-first-password :host "anthropic.com"))))
+
 
 ;; Haskell
 
 (use-package haskell-mode)
 
+(use-package lsp-haskell
+  :hook (haskell-mode))
+
 (use-package all-the-icons)
 
 ;;;; Language support
+
+
+
 ;; General
 (use-package flycheck
   :defer t
@@ -467,12 +427,6 @@
 
 ;; SQL
 
-
-(use-package sqlformat
-  :config
-  (setq sqlformat-command 'pgformatter)
-  (setq sqlformat-args '("-s2" "--no-extra-line")))
-
 ;; Set Postgres as the default SQL product.
 (setq sql-product "postgres")
 
@@ -484,23 +438,12 @@
 
 (global-eldoc-mode -1)
 
-;; Dart
-
-(use-package lsp-dart)
-
-;; Haskell
-(use-package haskell-mode)
-
-(use-package lsp-haskell
-  :hook (haskell-mode))
-
-
 ;; Lisp
 
 (use-package paredit
+  :diminish
   :config
   (show-paren-mode t)
-  :diminish nil
   :hook
   ((emacs-lisp-mode
     lisp-mode
@@ -529,107 +472,30 @@
         cider-auto-select-error-buffer t
         cider-repl-history-file "~/.emacs.d/cider-history"
         cider-repl-wrap-history t)
-  ; (add-to-list 'cider-jack-in-nrepl-middlewares '("shadow.cljs.devtools.server.nrepl/middleware"))
   :hook
   ((cider-mode . clj-refactor-mode)))
 
 (use-package clj-refactor
   :diminish clj-refactor-mode)
 
-;; ASCIIDoc
-
-(use-package adoc-mode)
-
-;; Racket
-
-(use-package racket-mode)
-
 ;; YAML
 (use-package yaml-mode)
-
-;; Python
-
-(use-package python-mode
-  :ensure nil
-  :after flycheck
-  :mode "\\.py\\'"
-  :hook (python-mode . subword-mode)
-  :custom
-  (python-indent-offset 4)
-  (flycheck-python-pycompile-executable "python3")
-  (python-shell-interpreter "python3"))
-
-(use-package pyvenv)
-
-(use-package blacken
-  :hook
-  (python-mode-hook))
-
-(use-package lsp-pyright
-  :config
-  (put 'lsp-pyright-python-executable-cmd 'safe-local-variable #'stringp)
-  :hook
-  (
-   (python-mode . (lambda ()
-                    (require 'lsp-pyright)
-                    (lsp-deferred)
-		    ))
-   ;; if .dir-locals exists, read it first, then activate mspyls
-   (hack-local-variables . (lambda ()
-			     (setq indent-tabs-mode nil)  ; disable tabs
-			     ))))
-
-;; python-black
-(use-package python-black
-  :hook
-  (python-mode . python-black-on-save-mode)
-  :init
-  (put 'python-black-command 'safe-local-variable #'stringp)
-  (put 'python-black-extra-args 'safe-local-variable #'stringp)
-  (put 'python-black-on-save-mode 'safe-local-variable #'booleanp))
-
-(use-package jedi
-  :config
-  (setq jedi:complete-on-dot t)
-  :hook
-  (python-mode-hook . jedi:setup))
-
-(use-package poetry
-  :hook
-  (python-mode . poetry-tracking-mode))
-
-(setq pyvenv-mode nil)
 
 ;; Go
 (use-package go-mode
   :hook
-  (before-save-hook . gofmt-before-save)
-  (subword-mode))
+  (before-save-hook . gofmt-before-save))
 
-(use-package nix-mode)
-
-(use-package restclient)
+(use-package nix-mode
+  :hook (nix-mode . lsp-deferred)
+  :custom
+  (lsp-nix-nil-formatter ["nixpkgs-fmt"]))
 
 ;; JavaScript
 
-(use-package rjsx-mode
-  :config
-  (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode)))
-
-(use-package prettier-js
-  :config
-  (setq prettier-js-args '(
-                           "--trailing-comma" "all"
-                           "--single-quote" "true"
-			   "--semi" "false"
-                           "--print-width" "100"
-                           ))
-  :hook
-  (((typescript-mode-hook js-mode-hook js2-mode-hook rjsx-mode-hook) . prettier-js-mode)
-   (typescript-mode . prettier-js-mode)
-   (js-mode-hook . subword-mode)))
-
-;; (straight-use-package '(tsx-mode :type git :host github :repo "orzechowskid/tsx-mode.el"))
+;; (use-package rjsx-mode
+;;   :config
+;;   (add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode)))
 
 ;; Typescript
 
@@ -684,29 +550,79 @@ If all failed, try to complete the common part with `company-complete-common'"
               (throw 'func-suceed t)))
           (company-complete-common))))))
 
-(use-package typescript-mode
-  :hook
-  ((typescript-mode . company-mode)
-   (typescript-subword-mode)
-   (typescript-mode . prettier-js-mode)))
+(use-package prettier-js)
 
-;; (use-package tide
-;;   :after (typescript-mode company flycheck)
-;;   :hook ((typescript-mode . tide-setup)
-;;          (typescript-mode . tide-hl-identifier-mode)
-;;          ;(before-save . tide-format-before-save)
-;; 	 )
+(use-package typescript-mode
+  :custom
+  (typescript-indent-level 2)
+  (indent-tabs-mode nil)
+  (subword-mode)
+  :hook
+  (typescript-mode . (lambda ()
+                      (prettier-js-mode 1)
+                      (setq-local lsp-enable-on-type-formatting nil)
+                      (setq-local lsp-format-on-save nil))))
+
+
+;; (use-package typescript-mode
 ;;   :config
-;;   (setq company-idle-delay 0))
+;;   (defun my-typescript-newline-and-indent ()
+;;     (interactive)
+;;     (newline)
+;;     (typescript-indent-line))
+;;   (setq lsp-enable-on-type-formatting nil)
+;;   (setq lsp-typescript-format-enable nil)
+
+;;   (define-key typescript-mode-map (kbd "RET") 'my-typescript-newline-and-indent)
+
+;;   ;; Use this if you're using typescript-mode
+;;   (setq typescript-indent-level 2)
+;;   ;; Use this if you're using typescript-ts-mode
+;;   ;; (setq typescript-ts-mode-indent-offset 2)
+
+;;   :hook
+;;   ((typescript-mode . (lambda ()
+;;                         (company-mode 1)
+;;                         (subword-mode 1)
+;; 			(prettier-js-mode 1)
+;;                         (electric-indent-local-mode -1)
+;; 			(setq-local lsp-enable-on-type-formatting nil
+;;                                 lsp-format-on-save nil))
+;; 		    )
+;; 					; (before-save . lsp-format-buffer)
+;;    (before-save . prettier-js)
+;;    ))
+
+;; (use-package typescript-mode
+;;   :custom
+;;   (setq typescript-indent-level 2)
+;;   :config
+;;   (defun my-typescript-newline-and-indent ()
+;;     (interactive)
+;;     (newline)
+;;     (typescript-indent-line))
+
+;;   ;; Remove global format on save
+;;   :hook
+;;   (typescript-mode . (lambda ()
+;;                       (setq-local lsp-enable-on-type-formatting nil)
+;;                       (setq-local lsp-format-on-save nil)
+;;                       (prettier-js-mode 1))))
+
+;; (use-package prisma-ts-mode)
 
 ;; Markdown
 (use-package markdown-mode
-    :commands (markdown-mode gfm-mode)
-    :mode (("README\\.md\\'" . gfm-mode)
-           ("\\.md\\'" . markdown-mode)
-           ("\\.mdx\\'" . markdown-mode)
-           ("\\.markdown\\'" . markdown-mode))
-    :init (setq markdown-command "multimarkdown"))
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.mdx\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init
+  (setq markdown-command "multimarkdown")
+  :config
+  (setq markdown-fontify-code-blocks-natively t)
+  (setq markdown-enable-math t))
 
 ;; Java
 
@@ -725,7 +641,6 @@ If all failed, try to complete the common part with `company-complete-common'"
   :custom
   (lsp-java-server-install-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/server/"))
   (lsp-java-workspace-dir (expand-file-name "~/.emacs.d/eclipse.jdt.ls/workspace/")))
-
 
 ;;
 ;; This function returns the list of installed
@@ -800,27 +715,20 @@ If all failed, try to complete the common part with `company-complete-common'"
   ;; setting `lsp-semantic-tokens-apply-modifiers' to `nil' because metals sends `abstract' modifier
   ;; which is mapped to `keyword' face.
   (lsp-metals-enable-semantic-highlighting t)
-  :hook (scala-mode . lsp))
+  :hook
+  (scala-mode . lsp)
+  (scala-mode . subword-mode))
 
 ;; Shell
 (setq-default sh-basic-offset 2)
 (setq-default sh-indentation 2)
-
-;; AI
-(use-package copilot
-  :straight (:host github
-             :repo "zerolfx/copilot.el"
-             :files ("dist" "*.el"))
-  :hook     (prog-mode . copilot-mode)
-  :config   (setq copilot-idle-delay 0.01)
-  :bind     (("C-c ." . copilot-accept-completion)
-             ("C-c x" . copilot-complete)))
 
 (use-package flymake-shellcheck
   :commands flymake-shellcheck-load
   :hook
   (sh-mode-hook . flymake-shellcheck-load))
 
+;; Zig
 (use-package zig-mode)
 
 ;; Run Emacs in server mode.
@@ -833,7 +741,12 @@ If all failed, try to complete the common part with `company-complete-common'"
 (use-package undo-tree
   :diminish
   :config
-  (global-undo-tree-mode))
+  (global-undo-tree-mode)
+  ;; Set the directory where undo-tree should save history files
+  (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
+  ;; Ensure the directory exists
+  (unless (file-exists-p "~/.emacs.d/undo")
+    (make-directory "~/.emacs.d/undo" t)))
 
 (use-package helpful
   ;; Note that the built-in `describe-function' includes both functions
@@ -845,7 +758,208 @@ If all failed, try to complete the common part with `company-complete-common'"
   (global-set-key (kbd "C-h k") #'helpful-key)
   (global-set-key (kbd "C-h x") #'helpful-command))
 
+(use-package visual-regexp)
+
+(use-package age
+  :demand t
+  :custom
+  (age-program "rage")
+  (age-default-recipient
+   '("~/.ssh/id_ed25519.pub"))
+  :config
+  (age-file-enable))
+
+;; These functions come from here: https://github.com/anticomputer/age.el
+(defun my/age-github-keys-for (username)
+  "Turn GitHub USERNAME into a list of ssh public keys."
+  (let* ((res (shell-command-to-string
+               (format "curl -s https://api.github.com/users/%s/keys"
+                       (shell-quote-argument username))))
+         (json (json-parse-string res :object-type 'alist)))
+    (cl-assert (arrayp json))
+    (cl-loop for alist across json
+             for key = (cdr (assoc 'key alist))
+             when (and (stringp key)
+                       (string-match-p "^\\(ssh-rsa\\|ssh-ed25519\\) AAAA" key))
+             collect key)))
+
+(defun my/age-save-with-github-recipient (username)
+  "Encrypt an age file to the public keys of GitHub USERNAME."
+  (interactive "MGitHub username: ")
+  (cl-letf (((symbol-value 'age-default-recipient)
+             (append (if (listp age-default-recipient)
+                         age-default-recipient
+                       (list age-default-recipient))
+                     (my/age-github-keys-for username))))
+    (save-buffer)))
+
+(use-package terraform-mode)
+
+(use-package git-gutter)
+(global-git-gutter-mode +1)
+
+;; Trial zone
+(use-package vertico
+  ;; (Note: It is recommended to also enable the savehist package.)
+  :ensure t
+  :defer t
+  :commands vertico-mode
+  :hook (after-init . vertico-mode))
+
+(use-package orderless
+  ;; Vertico leverages Orderless' flexible matching capabilities, allowing users
+  ;; to input multiple patterns separated by spaces, which Orderless then
+  ;; matches in any order against the candidates.
+  :ensure t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package marginalia
+  ;; Marginalia allows Embark to offer you preconfigured actions in more contexts.
+  ;; In addition to that, Marginalia also enhances Vertico by adding rich
+  ;; annotations to the completion candidates displayed in Vertico's interface.
+  :ensure t
+  :defer t
+  :commands (marginalia-mode marginalia-cycle)
+  :hook (after-init . marginalia-mode))
+
+(use-package embark
+  ;; Embark is an Emacs package that acts like a context menu, allowing
+  ;; users to perform context-sensitive actions on selected items
+  ;; directly from the completion interface.
+  :ensure t
+  :defer t
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package embark-consult
+  :after (consult embark)
+  :ensure t
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
+(use-package consult
+  :ensure t
+  :bind (;; C-c bindings in `mode-specific-map'
+         ("C-s" . consult-line)
+         ("C-r" . (lambda () (interactive) (consult-line nil t)))
+
+         ("C-c M-x" . consult-mode-command)
+         ("C-c h" . consult-history)
+         ("C-c k" . consult-kmacro)
+         ("C-c m" . consult-man)
+         ("C-c i" . consult-info)
+         ([remap Info-search] . consult-info)
+         ;; C-x bindings in `ctl-x-map'
+         ("C-x M-:" . consult-complex-command)
+         ("C-x b" . consult-buffer)
+         ("C-x 4 b" . consult-buffer-other-window)
+         ("C-x 5 b" . consult-buffer-other-frame)
+         ("C-x t b" . consult-buffer-other-tab)
+         ("C-x r b" . consult-bookmark)
+         ("C-x p b" . consult-project-buffer)
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)
+         ;; M-g bindings in `goto-map'
+         ("M-g e" . consult-compile-error)
+         ("M-g f" . consult-flymake)
+         ("M-g g" . consult-goto-line)
+         ("M-g M-g" . consult-goto-line)
+         ("M-g o" . consult-outline)
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ;; M-s bindings in `search-map'
+         ("M-s d" . consult-find)
+         ("M-s c" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)
+         ("M-s e" . consult-isearch-history)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)
+         ("M-r" . consult-history))
+
+  ;; Enable automatic preview at point in the *Completions* buffer.
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+
+  :init
+  ;; Optionally configure the register formatting. This improves the register
+  (setq register-preview-delay 0.5
+        register-preview-function #'consult-register-format)
+
+  ;; Optionally tweak the register preview window.
+  (advice-add #'register-preview :override #'consult-register-window)
+
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  :config
+  (consult-customize
+   consult-theme :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep
+   consult-bookmark consult-recent-file consult-xref
+   consult--source-bookmark consult--source-file-register
+   consult--source-recent-file consult--source-project-recent-file
+   ;; :preview-key "M-."
+   :preview-key '(:debounce 0.4 any))
+  (setq consult-narrow-key "<"))
+
+(use-package vterm
+  :ensure t
+  :defer t
+  :commands vterm
+  :config
+  ;; Speed up vterm
+  (setq vterm-timer-delay 0.01))
+
+(use-package coverlay)
+
+(use-package s)
+
+(use-package origami)
+
+(use-package corfu)
+
+(straight-use-package '(css-in-js-mode :type git :host github :repo "orzechowskid/tree-sitter-css-in-js"))
+
+(straight-use-package '(tsx-mode :type git :host github :repo "orzechowskid/tsx-mode.el"))
+
+;; end of trial zone
+
 (require 'init-magit)
+
+(require 'init-python)
 
 ;; Custom
 ;; This area is set by Custom. Don’t touch it.
@@ -858,7 +972,7 @@ If all failed, try to complete the common part with `company-complete-common'"
  '(custom-safe-themes
    '("2a998a3b66a0a6068bcb8b53cd3b519d230dd1527b07232e54c8b9d84061d48d" default))
  '(package-selected-packages
-   '(nix-mode flyspell-correct-ivy crux diminish amx flycheck-popup-tip flycheck-posframe json-mode web-mode flycheck-rust lsp-java java-lsp rust-mode haskell-mode adoc adoc-mode csv-mode lsp-dart evil-collection treemacs-evil evil-mode slack oauth2 dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company tide poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
+   '(nix-mode flyspell-correct-ivy crux diminish amx flycheck-popup-tip flycheck-posframe json-mode web-mode flycheck-rust lsp-java java-lsp rust-mode haskell-mode adoc adoc-mode csv-mode lsp-dart evil-collection treemacs-evil evil-mode slack oauth2 dockerfile-mode docker python-black lsp-pyright flymake-shellcheck company poetry flycheck-clj-kondo clj-refactor cider-mode cider clojure-mode paredit emojify exec-path-from-shell smex uniquify prettier-js flycheck go-mode jedi blacken pyvenv yaml-mode forge markdown-mode magit counsel-projectile projectile which-key rainbow-delimiters doom-modeline all-the-icons expand-region avy ivy-hydra ivy-rich counsel swiper base16-theme use-package)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
