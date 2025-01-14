@@ -1,13 +1,13 @@
 {
   description = "Valentin’s nix darwin flake";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/24.05";
 
     nix-darwin.url = "github:LnL7/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
     # Home-manager stuff
-    home-manager.url = "github:nix-community/home-manager";
+    home-manager.url = "github:nix-community/home-manager/release-24.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -27,7 +27,9 @@
             deno
             devenv
             direnv
-            # elmPackages."elm"
+            # CLI for building, runing, testing, and managing your Emacs Lisp dependencies
+            # https://emacs-eask.github.io
+            eask
             eza
             fd
             fzf
@@ -39,6 +41,8 @@
             helix
             ispell
             iosevka
+            jdt-language-server
+            jetbrains-mono
             jq
             metals
             multimarkdown
@@ -48,28 +52,30 @@
             # nodePackages."bash-language-server"
             nodePackages."dockerfile-language-server-nodejs"
             nodePackages."graphql-language-service-cli"
+            nodePackages."prettier"
             nodePackages."typescript"
             nodePackages."typescript-language-server"
             nodePackages."vscode-langservers-extracted"
+            nodePackages."localtunnel"
             nodePackages.pnpm
             nodejs
             openjdk22
             poetry
             pyenv
-            # lispPackages.quicklisp
             rage
             rust-analyzer
             rustc
+            rustfmt
             ripgrep
             s3cmd
-            silver-searcher
-            # sbcl
+            sbcl
             sbt
             scala
-            # starship
+            silver-searcher
             terraform-ls
             yarn
             zig
+            zls
           ];
         environment.shellAliases = {
           ls = "eza";
@@ -87,15 +93,15 @@
         environment.variables = {
           LANG = "en_GB.UTF-8";
           LC_ALL = "en_GB.UTF-8";
-          EDITOR = "emacs";
+          EDITOR = "hx";
           BAT_THEME = "Nord";
           # RUST_SRC_PATH = "${pkgs.latest.rustChannels.stable.rust-src}/lib/rustlib/src/rust/library/";
         };
         environment.pathsToLink = [ "/share/zsh" ];
 
-        # fonts.fontDir.enable = true;
         fonts.packages = with pkgs; [
           iosevka
+          jetbrains-mono
         ];
 
         # Auto upgrade nix package and the daemon service.
@@ -104,6 +110,7 @@
 
         # Necessary for using flakes on this system.
         nix.settings.experimental-features = "nix-command flakes";
+        nix.optimise.automatic = true;
 
         # Create /etc/zshrc that loads the nix-darwin environment.
         programs.zsh = {
@@ -112,12 +119,6 @@
           enableFzfGit = true;
           enableFzfHistory = true;
           enableSyntaxHighlighting = true;
-        };
-
-        # programs.java.enable = true;
-
-        programs.fish = {
-          enable = true;
         };
 
         services.tailscale = {
@@ -176,11 +177,14 @@
             "homebrew/services"
           ];
           casks = [
+            "calibre"
+            "claude"
             "cyberduck"
             "discord"
             "dozer"
             "figma"
             "firefox"
+            "ghostty"
             "google-chrome"
             "hey"
             "iterm2"
@@ -188,6 +192,7 @@
             "notion"
             "orbstack"
             "postico"
+            "raycast"
             "rectangle"
             "roam-research"
             "signal"
