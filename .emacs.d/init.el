@@ -65,21 +65,19 @@
 (use-package dash)
 
 (use-package vertico
-  :ensure t
   :config
   (setq vertico-cycle t)
   (setq vertico-resize nil)
   (vertico-mode 1))
 
 (use-package marginalia
-  :ensure t
   :config
   (marginalia-mode 1))
 
 (use-package orderless
-  :ensure t
-  :config
-  (setq completion-styles '(orderless basic)))
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package org
   :bind
@@ -293,10 +291,11 @@
     java-mode
     go-mode
     rust-mode
-    typescript-mode
+    typescript-ts-mode
     zig-mode) . lsp-deferred)
   (before-save . lsp-format-buffer)
   (lsp-mode . lsp-enable-which-key-integration)
+  (lsp-mode . lsp-ui-mode)
   :commands lsp
   :config
   ;; add paths to your local installation of project mgmt tools, like lein
@@ -329,7 +328,7 @@
   (lsp-ui-doc-header t)
   (lsp-ui-doc-include-signature t)
   (lsp-ui-doc-border (face-foreground 'default))
-  (lsp-ui-sideline-enable nil)
+  (lsp-ui-sideline-enable t)
   (lsp-ui-sideline-ignore-duplicate t)
   (lsp-ui-sideline-show-code-actions nil)
   :config
@@ -358,12 +357,16 @@
 
 ;; AI
 (use-package gptel
+  :bind (("C-c ." . gptel-menu))
+  :preface (gptel-make-openai "OpenAi"
+             :stream t
+             :key (auth-source-pick-first-password :host "openai.com"))
   :config
   (setq gptel-model 'claude-3-5-sonnet-20240620
+        gptel-api-key (auth-source-pick-first-password :host "openai.com")
         gptel-backend (gptel-make-anthropic "Claude"
                         :stream t
                         :key (auth-source-pick-first-password :host "anthropic.com"))))
-
 
 ;; Haskell
 
@@ -432,8 +435,8 @@
 
 ;; Emacs
 
-;; (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
-;; (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+(add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+(add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
 ;; (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
 
 (global-eldoc-mode -1)
@@ -510,45 +513,45 @@
 (use-package json-mode
   :mode "\\.json\\'")
 
-(use-package company
-  :diminish company-mode
-  :hook (((prog-mode LaTeX-mode latex-mode ess-r-mode) . company-mode)
-         ((prog-mode) . yas-minor-mode))
-  :bind
-  (:map company-active-map
-        ([tab] . smarter-tab-to-complete)
-        ("TAB" . smarter-tab-to-complete))
-  :custom
-  (company-minimum-prefix-length 1)
-  (company-tooltip-align-annotations t)
-  (company-require-match 'never)
-  ;; Don't use company in the following modes
-  (company-global-modes '(not shell-mode eaf-mode))
-  ;; Trigger completion immediately.
-  (company-idle-delay 0.1)
-  ;; Number the candidates (use M-1, M-2 etc to select completions).
-  (company-show-numbers t)
-  :config
-  ;; (unless clangd-p (delete 'company-clang company-backends))
-  (global-company-mode 1)
-  (defun smarter-tab-to-complete ()
-    "Try to `org-cycle', `yas-expand', and `yas-next-field' at current cursor position.
+;; (use-package company
+;;   :diminish company-mode
+;;   :hook (((prog-mode LaTeX-mode latex-mode ess-r-mode) . company-mode)
+;;          ((prog-mode) . yas-minor-mode))
+;;   :bind
+;;   (:map company-active-map
+;;         ([tab] . smarter-tab-to-complete)
+;;         ("TAB" . smarter-tab-to-complete))
+;;   :custom
+;;   (company-minimum-prefix-length 1)
+;;   (company-tooltip-align-annotations t)
+;;   (company-require-match 'never)
+;;   ;; Don't use company in the following modes
+;;   (company-global-modes '(not shell-mode eaf-mode))
+;;   ;; Trigger completion immediately.
+;;   (company-idle-delay 0.1)
+;;   ;; Number the candidates (use M-1, M-2 etc to select completions).
+;;   (company-show-numbers t)
+;;   :config
+;;   ;; (unless clangd-p (delete 'company-clang company-backends))
+;;   (global-company-mode 1)
+;;   (defun smarter-tab-to-complete ()
+;;     "Try to `org-cycle', `yas-expand', and `yas-next-field' at current cursor position.
 
-If all failed, try to complete the common part with `company-complete-common'"
-    (interactive)
-    (when yas-minor-mode
-      (let ((old-point (point))
-            (old-tick (buffer-chars-modified-tick))
-            (func-list
-             (if (equal major-mode 'org-mode) '(org-cycle yas-expand yas-next-field)
-               '(yas-expand yas-next-field))))
-        (catch 'func-suceed
-          (dolist (func func-list)
-            (ignore-errors (call-interactively func))
-            (unless (and (eq old-point (point))
-                         (eq old-tick (buffer-chars-modified-tick)))
-              (throw 'func-suceed t)))
-          (company-complete-common))))))
+;; If all failed, try to complete the common part with `company-complete-common'"
+;;     (interactive)
+;;     (when yas-minor-mode
+;;       (let ((old-point (point))
+;;             (old-tick (buffer-chars-modified-tick))
+;;             (func-list
+;;              (if (equal major-mode 'org-mode) '(org-cycle yas-expand yas-next-field)
+;;                '(yas-expand yas-next-field))))
+;;         (catch 'func-suceed
+;;           (dolist (func func-list)
+;;             (ignore-errors (call-interactively func))
+;;             (unless (and (eq old-point (point))
+;;                          (eq old-tick (buffer-chars-modified-tick)))
+;;               (throw 'func-suceed t)))
+;;           (company-complete-common))))))
 
 (use-package prettier-js)
 
@@ -562,6 +565,26 @@ If all failed, try to complete the common part with `company-complete-common'"
                       (prettier-js-mode 1)
                       (setq-local lsp-enable-on-type-formatting nil)
                       (setq-local lsp-format-on-save nil))))
+
+(use-package typescript-ts-mode
+  :mode (("\\.ts\\'" . typescript-ts-mode)
+         ("\\.tsx\\'" . tsx-ts-mode))
+  :custom
+  (typescript-ts-mode-indent-offset 2)
+  :config
+  (define-key typescript-ts-mode-map (kbd "RET") 'newline-and-indent)
+  :hook
+  ((typescript-ts-mode . lsp-deferred)
+   (tsx-ts-mode . lsp-deferred)
+   (typescript-ts-mode . prettier-js-mode)
+   (tsx-ts-mode . prettier-js-mode)
+   (typescript-ts-mode . (lambda ()
+                          (setq-local lsp-enable-on-type-formatting nil)
+                          (setq-local lsp-format-on-save nil)))
+   (tsx-ts-mode . (lambda ()
+                    (setq-local lsp-enable-on-type-formatting nil)
+                    (setq-local lsp-format-on-save nil)))))
+
 
 
 ;; (use-package typescript-mode
@@ -935,6 +958,15 @@ If all failed, try to complete the common part with `company-complete-common'"
    :preview-key '(:debounce 0.4 any))
   (setq consult-narrow-key "<"))
 
+(use-package consult-projectile
+  :bind (("C-c f" . consult-projectile-find-file)
+         ("C-x p p" . consult-projectile))
+  :straight (consult-projectile
+             :type git
+             :host gitlab
+             :repo "OlMon/consult-projectile"
+             :branch "master"))
+
 (use-package vterm
   :ensure t
   :defer t
@@ -949,7 +981,127 @@ If all failed, try to complete the common part with `company-complete-common'"
 
 (use-package origami)
 
-(use-package corfu)
+(use-package kind-icon
+  :ensure t
+  :after corfu
+  ;:custom
+  ; (kind-icon-blend-background t)
+  ; (kind-icon-default-face 'corfu-default) ; only needed with blend-background
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter)
+  :custom
+  (kind-icon-use-icons t)
+  (kind-icon-default-face 'corfu-default) ; Have background color be the same as `corfu' face background
+  (kind-icon-blend-background nil)  ; Use midpoint color between foreground and background colors ("blended")?
+  (kind-icon-blend-frac 0.08))
+
+(use-package corfu
+  :custom
+  (corfu-auto t)
+
+  (corfu-auto-delay 0.25)
+  (corfu-echo-documentation t)
+  (corfu-popupinfo-delay 0)
+  (corfu-preview-current 'insert)
+  (corfu-popupinfo t)
+
+  (corfu-separator ?\s)  ;; Use space as the separator
+  (corfu-quit-at-boundary nil)  ;; Don't quit at word boundary
+  (corfu-quit-no-match nil)
+  (corfu-preview-current nil)
+  
+  :hook
+  ((prog-mode) . yas-minor-mode)
+  
+  :init
+  (global-corfu-mode)
+  (corfu-popupinfo-mode))
+
+(use-package dabbrev
+  ;; Swap M-/ and C-M-/
+  :bind (("M-/" . dabbrev-completion)
+         ("C-M-/" . dabbrev-expand))
+  :config
+  (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+  ;; Since 29.1, use `dabbrev-ignored-buffer-regexps' on older.
+  (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+  (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+  (add-to-list 'dabbrev-ignored-buffer-modes 'tags-table-mode))
+
+;; A few more useful configurations...
+(use-package emacs
+  :custom
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (tab-always-indent 'complete)
+
+  ;; Emacs 30 and newer: Disable Ispell completion function.
+  ;; Try `cape-dict' as an alternative.
+  (text-mode-ispell-word-completion nil)
+
+  ;; Hide commands in M-x which do not apply to the current mode.  Corfu
+  ;; commands are hidden, since they are not used via M-x. This setting is
+  ;; useful beyond Corfu.
+  (read-extended-command-predicate #'command-completion-default-include-p)
+
+  )
+
+(use-package combobulate
+  :preface
+  (defun mp-setup-install-grammars ()
+    "Install Tree-sitter grammars if they are absent."
+    (interactive)
+    (dolist (grammar
+             ;; Note the version numbers. These are the versions that
+             ;; are known to work with Combobulate *and* Emacs.
+             '((c . ("https://github.com/tree-sitter/tree-sitter-c" "v0.23.4"))
+               (css . ("https://github.com/tree-sitter/tree-sitter-css" "v0.23.2"))
+               (go . ("https://github.com/tree-sitter/tree-sitter-go" "v0.23.4"))
+               (html . ("https://github.com/tree-sitter/tree-sitter-html" "v0.23.2"))
+               (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript" "v0.23.1" "src"))
+               (java . ("https://github.com/tree-sitter/tree-sitter-java" "v0.23.5" "src"))
+               (json . ("https://github.com/tree-sitter/tree-sitter-json" "v0.24.8"))
+               (markdown . ("https://github.com/ikatyang/tree-sitter-markdown" "v0.7.1"))
+               (python . ("https://github.com/tree-sitter/tree-sitter-python" "v0.23.6"))
+               (rust . ("https://github.com/tree-sitter/tree-sitter-rust" "v0.23.2"))
+               (scala . ("https://github.com/tree-sitter/tree-sitter-scala" "v0.23.5"))
+               (toml . ("https://github.com/tree-sitter/tree-sitter-toml" "v0.5.1"))
+               (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "v0.23.2" "tsx/src"))
+               (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "v0.23.2" "typescript/src"))
+               (yaml . ("https://github.com/ikatyang/tree-sitter-yaml" "v0.5.0"))))
+      (add-to-list 'treesit-language-source-alist grammar)
+      ;; Only install `grammar' if we don't already have it
+      ;; installed. However, if you want to *update* a grammar then
+      ;; this obviously prevents that from happening.
+      (unless (treesit-language-available-p (car grammar))
+        (treesit-install-language-grammar (car grammar)))))
+  (dolist (mapping
+           '((python-mode . python-ts-mode)
+             (css-mode . css-ts-mode)
+             (typescript-mode . typescript-ts-mode)
+             (js2-mode . js-ts-mode)
+             (bash-mode . bash-ts-mode)
+             (conf-toml-mode . toml-ts-mode)
+             (go-mode . go-ts-mode)
+             (css-mode . css-ts-mode)
+             (json-mode . json-ts-mode)
+             (js-json-mode . json-ts-mode)))
+    (add-to-list 'major-mode-remap-alist mapping))
+
+  :config
+  (mp-setup-install-grammars)
+  ;; Unbind some keys that clash with combobulate
+  (global-unset-key (kbd "C-M-d"))
+  (global-unset-key (kbd "C-M-e"))
+
+  :bind
+  ("C-M-d" . combobulate-navigate-down)
+
+  :custom
+  ;; You can customize Combobulate's key prefix here.
+  ;; Note that you may have to restart Emacs for this to take effect!
+  (combobulate-key-prefix "C-c o")
+  :hook ((prog-mode . combobulate-mode)))
 
 (straight-use-package '(css-in-js-mode :type git :host github :repo "orzechowskid/tree-sitter-css-in-js"))
 
