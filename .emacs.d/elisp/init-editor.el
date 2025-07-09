@@ -75,9 +75,11 @@
 ; (setq base16-theme-256-color-source "colors")
 ; (load-theme 'base16-nord t)
 
-(use-package nord-theme
-  :config
-  (load-theme 'nord t))
+(load-theme 'modus-vivendi-tinted)
+
+;; (use-package nord-theme
+;;   :config
+;;   (load-theme 'nord t))
 
 ;; No need for ~ files when editing
 (setq create-lockfiles nil)
@@ -91,7 +93,7 @@
 (setq x-use-underline-position-properties nil)
 (setq x-underline-at-descent-line t)
 
-(setq tab-width 4)
+(setq tab-width 2)
 
 (require 'uniquify)
 
@@ -109,7 +111,7 @@
 (defun reset-buffer-width ()
   "Reset the width of single buffers based on the screen resolution."
   (interactive)
-  (let ((ratio (if (> (display-pixel-width) 1500) 0.5 0.8)))
+  (let ((ratio (if (> (display-pixel-width) 1500) 0.6 0.8)))
     (setq olivetti-body-width ratio)))
 
 ;; This package makes the buffer centered when there is only one.
@@ -134,6 +136,8 @@
 (setq split-window-preferred-function 'split-window-sensibly)
 
 (global-auto-revert-mode 1)
+
+(blink-cursor-mode -1)
 
 (provide 'init-editor)
 

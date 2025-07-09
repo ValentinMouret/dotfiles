@@ -17,6 +17,12 @@
   :hook
   (python-mode-hook))
 
+(use-package reformatter)
+
+(use-package ruff-format
+  :after reformatter
+  )
+
 (use-package lsp-pyright
   ;; :config
   ;; (put 'lsp-pyright-python-executable-cmd 'safe-local-variable #'stringp)

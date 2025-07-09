@@ -27,10 +27,13 @@
 ;;
 ;;; Code:
 
+;;; Hello
+
 (require 'init-const)
 
+;;; Other
 (require 'init-package)
-
+ 
 (require 'init-global-config)
 
 ;; Initialize the package archives:
@@ -38,6 +41,9 @@
 
 (defvar minimal-emacs-gc-cons-threshold (megabytes 16)
   "The value of `gc-cons-threshold' after Emacs startup.")
+
+(use-package envrc
+  :hook (after-init . envrc-global-mode))
 
 (use-package auto-compile
   :demand t
@@ -64,19 +70,23 @@
 ;; Dependency of other packages.
 (use-package dash)
 
-(use-package vertico
-  :config
-  (setq vertico-cycle t)
-  (setq vertico-resize nil)
-  (vertico-mode 1))
-
 (use-package marginalia
-  :config
-  (marginalia-mode 1))
+  ;; Marginalia allows Embark to offer you preconfigured actions in more contexts.
+  ;; In addition to that, Marginalia also enhances Vertico by adding rich
+  ;; annotations to the completion candidates displayed in Vertico's interface.
+  :ensure t
+  :defer t
+  :commands (marginalia-mode marginalia-cycle)
+  :hook (after-init . marginalia-mode))
 
 (use-package orderless
+  ;; Vertico leverages Orderless' flexible matching capabilities, allowing users
+  ;; to input multiple patterns separated by spaces, which Orderless then
+  ;; matches in any order against the candidates.
+  :ensure t
   :custom
   (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
   (completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package org
@@ -87,7 +97,7 @@
   (setq org-agenda-files '("/Users/valentinmouret/Documents/Notes"))
   (setq org-agenda-start-with-log-mode t)
   (setq org-log-done 'time)
-  (setq org-log-into-drawer '())
+  (setq org-log-into-drawer nil)
 
   (org-toggle-pretty-entities)
 
@@ -99,7 +109,6 @@
   (add-to-list 'org-modules 'org-habit)
 
   (setq org-habit-graph-column 60))
-
 
 (use-package org-roam
   :after org
@@ -120,7 +129,6 @@
    ("C-c n i" . org-roam-node-insert)
    ("C-c n d" . org-roam-dailies-goto-today)))
 
-;;
 (use-package rg
   :config
   ;; Nix installs `rg` in a place that might be hard to find?
@@ -161,6 +169,7 @@
     org-mode
     outline-mode
     text-mode))
+
 (use-package flyspell
   :diminish
   :if (executable-find "aspell")
@@ -198,7 +207,7 @@
   (load-prefer-newer t)
   ;; Detect external file changes and auto refresh file
   (auto-revert-use-notify nil)
-  (auto-revert-interval 3) ; Auto revert every 3 sec
+  (auto-revert-interval 10) ; Auto revert every 3 sec
   :config
   ;; Enable global auto-revert
   (global-auto-revert-mode t)
@@ -214,24 +223,21 @@
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
 
-;; Run: M-x all-the-icons-install-font
-(use-package all-the-icons)
-
+;; Run: M-x nerd-icons-install-font
 (use-package nerd-icons
   :config (nerd-icons-install-fonts 1))
 
 (use-package doom-modeline
-  :after nerd-icons
-  :init (doom-modeline-mode 1)
+  :init
+  (doom-modeline-mode 1)
   :custom
-  ;; Don't compact font caches during GC. Windows Laggy Issue
-  (inhibit-compacting-font-caches t)
-  (doom-modeline-minor-modes t)
-  (doom-modeline-icon t)
+  (doom-modeline-major-mode-icon t)
   (doom-modeline-major-mode-color-icon t)
+  (doom-modeline-icon t)
+  (doom-modeline-unicode-fallback t)
   (doom-modeline-height 15)
   :config
-  (doom-modeline-mode))
+  (doom-modeline-mode 1))
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -278,7 +284,7 @@
   (lsp-keymap-prefix "C-c l")
   (lsp-prefer-flymake nil)
   (lsp-enable-folding nil)
-  (read-process-output-max (* 1024 1024))
+  (read-process-output-max (* 1024 1024 3))
   (lsp-eldoc-hook nil)
   (lsp-log-io nil)
   (lsp-keep-workspace-alive nil)
@@ -289,9 +295,11 @@
     clojure-mode
     clojurescript-mode
     java-mode
-    go-mode
+    python-ts-mode
     rust-mode
+    terraform-mode
     typescript-ts-mode
+    tsx-ts-mode
     zig-mode) . lsp-deferred)
   (before-save . lsp-format-buffer)
   (lsp-mode . lsp-enable-which-key-integration)
@@ -335,13 +343,17 @@
   ;; Use lsp-ui-doc-webkit only in GUI
   (when (display-graphic-p)
     (setq lsp-ui-doc-use-webkit t))
-  (setq lsp-zig-zls-executable "/run/current-system/sw/bin/zls")
+                                        ; (setq lsp-zig-zls-executable "/run/current-system/sw/bin/zls")
   ;; WORKAROUND Hide mode-line of the lsp-ui-imenu buffer
   ;; https://github.com/emacs-lsp/lsp-ui/issues/243
   (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
     (setq mode-line-format nil))
   ;; `C-g'to close doc
   (advice-add #'keyboard-quit :before #'lsp-ui-doc-hide))
+
+(use-package direnv
+  :config
+  (direnv-mode))
 
 (use-package multiple-cursors
   :bind
@@ -358,9 +370,28 @@
 ;; AI
 (use-package gptel
   :bind (("C-c ." . gptel-menu))
-  :preface (gptel-make-openai "OpenAi"
-             :stream t
-             :key (auth-source-pick-first-password :host "openai.com"))
+  :preface
+
+  (gptel-make-openai "OpenAi"
+    :stream t
+    :key (auth-source-pick-first-password :host "openai.com"))
+
+  (gptel-make-anthropic "Claude"
+    :stream t
+    :key (auth-source-pick-first-password :host "anthropic.com"))
+
+  (gptel-make-ollama "Ollama"
+    :host "localhost:11434"
+    :stream t
+    :models '(omercelik/openhands-lm:latest
+              deepseek-r1:70b
+              devstral:latest
+              gemma3:27b
+              gemma3n:latest
+              magistral:latest
+              mistral-small3.1:latest
+              qwen3:32b))
+
   :config
   (setq gptel-model 'claude-3-5-sonnet-20240620
         gptel-api-key (auth-source-pick-first-password :host "openai.com")
@@ -375,11 +406,7 @@
 (use-package lsp-haskell
   :hook (haskell-mode))
 
-(use-package all-the-icons)
-
 ;;;; Language support
-
-
 
 ;; General
 (use-package flycheck
@@ -460,11 +487,11 @@
 
 ;; Clojure
 
-(use-package flycheck-clj-kondo)
+; (use-package flycheck-clj-kondo)
 
 (use-package clojure-mode
   :config
-  (require 'flycheck-clj-kondo)
+  ; (require 'flycheck-clj-kondo)
   (setq clojure-align-forms-automatically t))
 
 (use-package cider
@@ -483,11 +510,6 @@
 
 ;; YAML
 (use-package yaml-mode)
-
-;; Go
-(use-package go-mode
-  :hook
-  (before-save-hook . gofmt-before-save))
 
 (use-package nix-mode
   :hook (nix-mode . lsp-deferred)
@@ -555,84 +577,34 @@
 
 (use-package prettier-js)
 
-(use-package typescript-mode
-  :custom
-  (typescript-indent-level 2)
-  (indent-tabs-mode nil)
-  (subword-mode)
-  :hook
-  (typescript-mode . (lambda ()
-                      (prettier-js-mode 1)
-                      (setq-local lsp-enable-on-type-formatting nil)
-                      (setq-local lsp-format-on-save nil))))
-
 (use-package typescript-ts-mode
   :mode (("\\.ts\\'" . typescript-ts-mode)
          ("\\.tsx\\'" . tsx-ts-mode))
+
   :custom
-  (typescript-ts-mode-indent-offset 2)
-  :config
-  (define-key typescript-ts-mode-map (kbd "RET") 'newline-and-indent)
+  (typescript-indent-level 2)
+  (indent-tabs-mode nil)
+
   :hook
-  ((typescript-ts-mode . lsp-deferred)
-   (tsx-ts-mode . lsp-deferred)
-   (typescript-ts-mode . prettier-js-mode)
-   (tsx-ts-mode . prettier-js-mode)
-   (typescript-ts-mode . (lambda ()
-                          (setq-local lsp-enable-on-type-formatting nil)
-                          (setq-local lsp-format-on-save nil)))
-   (tsx-ts-mode . (lambda ()
-                    (setq-local lsp-enable-on-type-formatting nil)
-                    (setq-local lsp-format-on-save nil)))))
+  (subword-mode)
+
+  :config
+  ;; Ensure formatting hooks are added to both modes
+  (add-hook 'typescript-ts-mode-hook #'prettier-js-mode)
+  (add-hook 'tsx-ts-mode-hook #'prettier-js-mode)
 
 
+  ;; Disable LSP formatting for both modes
+  (add-hook 'typescript-ts-mode-hook
+            (lambda ()
+              (setq-local before-save-hook nil)))
 
-;; (use-package typescript-mode
-;;   :config
-;;   (defun my-typescript-newline-and-indent ()
-;;     (interactive)
-;;     (newline)
-;;     (typescript-indent-line))
-;;   (setq lsp-enable-on-type-formatting nil)
-;;   (setq lsp-typescript-format-enable nil)
+  (add-hook 'tsx-ts-mode-hook
+            (lambda ()
+              (setq-local before-save-hook nil))))
 
-;;   (define-key typescript-mode-map (kbd "RET") 'my-typescript-newline-and-indent)
-
-;;   ;; Use this if you're using typescript-mode
-;;   (setq typescript-indent-level 2)
-;;   ;; Use this if you're using typescript-ts-mode
-;;   ;; (setq typescript-ts-mode-indent-offset 2)
-
-;;   :hook
-;;   ((typescript-mode . (lambda ()
-;;                         (company-mode 1)
-;;                         (subword-mode 1)
-;; 			(prettier-js-mode 1)
-;;                         (electric-indent-local-mode -1)
-;; 			(setq-local lsp-enable-on-type-formatting nil
-;;                                 lsp-format-on-save nil))
-;; 		    )
-;; 					; (before-save . lsp-format-buffer)
-;;    (before-save . prettier-js)
-;;    ))
-
-;; (use-package typescript-mode
-;;   :custom
-;;   (setq typescript-indent-level 2)
-;;   :config
-;;   (defun my-typescript-newline-and-indent ()
-;;     (interactive)
-;;     (newline)
-;;     (typescript-indent-line))
-
-;;   ;; Remove global format on save
-;;   :hook
-;;   (typescript-mode . (lambda ()
-;;                       (setq-local lsp-enable-on-type-formatting nil)
-;;                       (setq-local lsp-format-on-save nil)
-;;                       (prettier-js-mode 1))))
-
-;; (use-package prisma-ts-mode)
+;; (use-package prisma-ts-mode
+;;   :mode (("\\.prisma\\'" . prisma-ts-mode)))
 
 ;; Markdown
 (use-package markdown-mode
@@ -787,36 +759,19 @@
   :demand t
   :custom
   (age-program "rage")
+  (age-default-identity
+   '("~/.ssh/id_ed25519.pub"))
   (age-default-recipient
    '("~/.ssh/id_ed25519.pub"))
   :config
   (age-file-enable))
 
-;; These functions come from here: https://github.com/anticomputer/age.el
-(defun my/age-github-keys-for (username)
-  "Turn GitHub USERNAME into a list of ssh public keys."
-  (let* ((res (shell-command-to-string
-               (format "curl -s https://api.github.com/users/%s/keys"
-                       (shell-quote-argument username))))
-         (json (json-parse-string res :object-type 'alist)))
-    (cl-assert (arrayp json))
-    (cl-loop for alist across json
-             for key = (cdr (assoc 'key alist))
-             when (and (stringp key)
-                       (string-match-p "^\\(ssh-rsa\\|ssh-ed25519\\) AAAA" key))
-             collect key)))
-
-(defun my/age-save-with-github-recipient (username)
-  "Encrypt an age file to the public keys of GitHub USERNAME."
-  (interactive "MGitHub username: ")
-  (cl-letf (((symbol-value 'age-default-recipient)
-             (append (if (listp age-default-recipient)
-                         age-default-recipient
-                       (list age-default-recipient))
-                     (my/age-github-keys-for username))))
-    (save-buffer)))
-
 (use-package terraform-mode)
+
+(use-package go-ts-mode
+  :hook
+  ((before-save . eglot-format))
+  )
 
 (use-package git-gutter)
 (global-git-gutter-mode +1)
@@ -827,26 +782,10 @@
   :ensure t
   :defer t
   :commands vertico-mode
-  :hook (after-init . vertico-mode))
-
-(use-package orderless
-  ;; Vertico leverages Orderless' flexible matching capabilities, allowing users
-  ;; to input multiple patterns separated by spaces, which Orderless then
-  ;; matches in any order against the candidates.
-  :ensure t
+  :hook (after-init . vertico-mode)
   :custom
-  (completion-styles '(orderless basic))
-  (completion-category-defaults nil)
-  (completion-category-overrides '((file (styles partial-completion)))))
-
-(use-package marginalia
-  ;; Marginalia allows Embark to offer you preconfigured actions in more contexts.
-  ;; In addition to that, Marginalia also enhances Vertico by adding rich
-  ;; annotations to the completion candidates displayed in Vertico's interface.
-  :ensure t
-  :defer t
-  :commands (marginalia-mode marginalia-cycle)
-  :hook (after-init . marginalia-mode))
+  (vertico-resize t)
+  (vertico-cycle t))
 
 (use-package embark
   ;; Embark is an Emacs package that acts like a context menu, allowing
@@ -998,16 +937,15 @@
 (use-package corfu
   :custom
   (corfu-auto t)
-
-  (corfu-auto-delay 0.25)
+  (corfu-auto-prefix 3)
+  (corfu-auto-delay 0.3)
   (corfu-echo-documentation t)
   (corfu-popupinfo-delay 0)
   (corfu-preview-current 'insert)
   (corfu-popupinfo t)
 
-  (corfu-separator ?\s)  ;; Use space as the separator
-  (corfu-quit-at-boundary nil)  ;; Don't quit at word boundary
-  (corfu-quit-no-match nil)
+  ; (corfu-quit-at-boundary nil)  ;; Don't quit at word boundary
+  ; (corfu-quit-no-match nil)
   (corfu-preview-current nil)
   
   :hook
@@ -1043,8 +981,22 @@
   ;; commands are hidden, since they are not used via M-x. This setting is
   ;; useful beyond Corfu.
   (read-extended-command-predicate #'command-completion-default-include-p)
-
   )
+
+;; Configure tree-sitter to find grammars installed by Nix
+(setq treesit-extra-load-path
+      (list
+       ;; Main Nix store paths where grammars might be found
+       "/run/current-system/sw/lib"
+       (expand-file-name "~/.nix-profile/lib")
+       ;; For Nix Darwin
+       "/etc/profiles/per-user/valentinmouret/lib"
+       ;; Add this for backup
+       (expand-file-name "~/.emacs.d/tree-sitter")))
+
+;; Create the local directory for fallback
+(when (not (file-exists-p "~/.emacs.d/tree-sitter"))
+  (make-directory "~/.emacs.d/tree-sitter" t))
 
 (use-package combobulate
   :preface
@@ -1067,6 +1019,7 @@
                (scala . ("https://github.com/tree-sitter/tree-sitter-scala" "v0.23.5"))
                (toml . ("https://github.com/tree-sitter/tree-sitter-toml" "v0.5.1"))
                (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "v0.23.2" "tsx/src"))
+               (terraform . ("https://github.com/mitchellh/tree-sitter-hcl" "main"))
                (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "v0.23.2" "typescript/src"))
                (yaml . ("https://github.com/ikatyang/tree-sitter-yaml" "v0.5.0"))))
       (add-to-list 'treesit-language-source-alist grammar)
@@ -1075,18 +1028,14 @@
       ;; this obviously prevents that from happening.
       (unless (treesit-language-available-p (car grammar))
         (treesit-install-language-grammar (car grammar)))))
-  (dolist (mapping
-           '((python-mode . python-ts-mode)
-             (css-mode . css-ts-mode)
-             (typescript-mode . typescript-ts-mode)
-             (js2-mode . js-ts-mode)
-             (bash-mode . bash-ts-mode)
-             (conf-toml-mode . toml-ts-mode)
-             (go-mode . go-ts-mode)
-             (css-mode . css-ts-mode)
-             (json-mode . json-ts-mode)
-             (js-json-mode . json-ts-mode)))
-    (add-to-list 'major-mode-remap-alist mapping))
+  (setq major-mode-remap-alist
+        '((python-mode . python-ts-mode)
+          (css-mode . css-ts-mode)
+          (typescript-mode . typescript-ts-mode)
+          (js-mode . js-ts-mode)
+          (bash-mode . bash-ts-mode)
+          (go-mode . go-ts-mode)
+          (json-mode . json-ts-mode)))
 
   :config
   (mp-setup-install-grammars)
@@ -1105,13 +1054,29 @@
 
 (straight-use-package '(css-in-js-mode :type git :host github :repo "orzechowskid/tree-sitter-css-in-js"))
 
-(straight-use-package '(tsx-mode :type git :host github :repo "orzechowskid/tsx-mode.el"))
+(use-package aidermacs
+  :bind (("C-c a" . aidermacs-transient-menu))
+  :custom
+  ; See the Configuration section below
+  (aidermacs-default-chat-mode 'architect)
+  (aidermacs-default-model "ollama_chat/devstral:latest"))
+
+(use-package eglot
+  ;; Installed with Emacs now.
+  :straight nil
+  :hook
+  ((go-ts-mode . eglot-ensure)
+   (python-ts-mode . eglot-ensure)
+   (typescript-ts-mode . eglot-ensure))
+  )
 
 ;; end of trial zone
 
 (require 'init-magit)
 
 (require 'init-python)
+
+(require 'encryption)
 
 ;; Custom
 ;; This area is set by Custom. Don’t touch it.
@@ -1140,3 +1105,4 @@
 
 (provide 'init)
 ;;; init.el ends here.
+(put 'narrow-to-region 'disabled nil)
