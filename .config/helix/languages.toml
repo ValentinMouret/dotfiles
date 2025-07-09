@@ -4,14 +4,25 @@ auto-format = true
 
 [[language]]
 name = "python"
-language-servers = [ "pylsp", "pyright", "ruff" ]
+language-servers = [ { name = "pylsp", except-features = [ "format" ] }, "ruff"]
 auto-format = true
+
+[language-server.pylsp.config.pylsp.plugins]
+ruff.enabled = false
+autopep8.enabled = false
+flake8.enabled = false
+mccabe.enabled = false
+pycodestyle.enabled = false
+pyflakes.enabled = false
+pylint.enabled = false
+yapf.enabled = false
 
 [language-server.pyright.config.python.analysis]
 typeCheckingMode = "basic"
 
 [language-server.ruff]
-command = "ruff-lsp"
+command = "ruff"
+args = ["server"]
 
 [language-server.ruff.config.settings]
 args = ["--ignore", "E501"]
@@ -22,8 +33,13 @@ args = ["--line-length", "88", "--quiet", "-"]
 
 [[languages]]
 name = "go"
+injection-regex = "go"
 auto-format = true
-formatter = { command = "goimports" }
+formatter = { command = "goimports", args = [ "-w" ] }
+language-server = { command = "gopls" }
+
+[language-server.gopls]
+command = "gopls"
 
 [language-server.sql-language-server]
 command = "sql-language-server"

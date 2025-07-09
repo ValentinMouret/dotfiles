@@ -4,18 +4,15 @@ theme = "nord"
 line-number = "relative"
 cursorline = true
 rulers = [80]
-
-# [editor]
-# bufferline = "multiple"
+bufferline = "multiple"
 
 [keys.normal]
-c = "move_char_left"
-t = "move_visual_line_down"
-s = "move_visual_line_up"
-r = "move_char_right"
+t = "move_char_left"
+s = "move_visual_line_down"
+r = "move_visual_line_up"
+n = "move_char_right"
 "’" = "select_regex"
 h = "change_selection"
 
 [keys.normal."space"]
 "F" = "file_picker_in_current_buffer_directory"
-
