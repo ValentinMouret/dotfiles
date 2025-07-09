@@ -1,13 +1,14 @@
 {
   description = "Valentin’s nix darwin flake";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    nix-darwin.url = "github:LnL7/nix-darwin";
+    # Check https://status.nixos.org
+    nix-darwin.url = "github:LnL7/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
     # Home-manager stuff
-    home-manager.url = "github:nix-community/home-manager/release-24.05";
+    home-manager.url = "github:nix-community/home-manager/master";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -16,37 +17,36 @@
       configuration = { pkgs, ... }: {
         # List packages installed in system profile. To search by name, run:
         # $ nix-env -qaP | grep wget
+        nixpkgs.config.allowUnfree = true;
+
         environment.systemPackages = with pkgs;
           [
-            babashka
+            aider-chat
             bat
-            bottom
             cargo
+            claude-code
             clojure
-            delve
-            deno
+            clojure-lsp
+            cmake
             devenv
+            difftastic
             direnv
             # CLI for building, runing, testing, and managing your Emacs Lisp dependencies
             # https://emacs-eask.github.io
-            eask
             eza
             fd
             fzf
             git
             gitAndTools.gh
-            go
-            gopls
-            gotools
             helix
             ispell
             iosevka
+            glibtool
+            libtool
             jdt-language-server
-            jetbrains-mono
-            jq
-            metals
+            nerd-fonts.jetbrains-mono
+            jujutsu
             multimarkdown
-            nerdfonts
             nil # Nix lsp
             nixpkgs-fmt
             # nodePackages."bash-language-server"
@@ -59,25 +59,25 @@
             nodePackages."localtunnel"
             nodePackages.pnpm
             nodejs
-            openjdk22
-            poetry
+            jdk23
             pyenv
             rage
             rust-analyzer
             rustc
             rustfmt
             ripgrep
-            s3cmd
-            sbcl
-            sbt
-            scala
             silver-searcher
             terraform-ls
-            yarn
-            zig
-            zls
+            tree-sitter
+            tree-sitter-grammars.tree-sitter-clojure
+            tree-sitter-grammars.tree-sitter-go
+            tree-sitter-grammars.tree-sitter-python
+            tree-sitter-grammars.tree-sitter-tsx
+            tree-sitter-grammars.tree-sitter-typescript
           ];
         environment.shellAliases = {
+          emacs = "open -a Emacs";
+
           ls = "eza";
           ll = "ls -l";
           grep = "rg";
@@ -105,12 +105,11 @@
         ];
 
         # Auto upgrade nix package and the daemon service.
-        services.nix-daemon.enable = true;
         # nix.package = pkgs.nix;
 
         # Necessary for using flakes on this system.
         nix.settings.experimental-features = "nix-command flakes";
-        nix.optimise.automatic = true;
+        # nix.optimise.automatic = true;
 
         # Create /etc/zshrc that loads the nix-darwin environment.
         programs.zsh = {
@@ -135,6 +134,8 @@
         # Used for backwards compatibility, please read the changelog before changing.
         # $ darwin-rebuild changelog
         system.stateVersion = 4;
+
+        system.primaryUser = "valentinmouret";
 
         system.defaults.".GlobalPreferences"."com.apple.mouse.scaling" = 10.0;
         system.defaults.NSGlobalDomain.AppleInterfaceStyleSwitchesAutomatically = true;
@@ -170,37 +171,36 @@
               restart_service = true;
               link = true;
             }
-            "emacs-plus"
+            # "emacs-plus"
           ];
           taps = [
-            "d12frosted/emacs-plus"
-            "homebrew/services"
+            # "d12frosted/emacs-plus"
           ];
           casks = [
-            "calibre"
+            "brave-browser"
+            "chatgpt"
             "claude"
+            "cursor"
             "cyberduck"
             "discord"
-            "dozer"
+            "emacs"
             "figma"
-            "firefox"
             "ghostty"
             "google-chrome"
             "hey"
-            "iterm2"
             "linear-linear"
+            "lm-studio"
             "notion"
+            "ollama"
             "orbstack"
             "postico"
-            "raycast"
             "rectangle"
             "roam-research"
             "signal"
             "slack"
-            "vlc"
             "visual-studio-code"
-            "wezterm"
             "whatsapp"
+            "zed"
           ];
         };
 
@@ -215,8 +215,9 @@
     {
       # Build darwin flake using:
       # $ darwin-rebuild build --flake .#Valentins-MacBook-Pro
-      darwinConfigurations."Valentins-MacBook-Pro" = nix-darwin.lib.darwinSystem {
+      darwinConfigurations."Valentins-MacBook-Pro-2" = nix-darwin.lib.darwinSystem {
         modules = [
+          { nix.enable = false; }
           configuration
           home-manager.darwinModules.home-manager
           {
